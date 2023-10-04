@@ -5,13 +5,31 @@ import (
 	"net/http"
 )
 
-type custURL struct {
+var SavedData map[string]string
+
+type CustURL struct {
 	full    string
 	shorten string
 }
 
-type store struct {
-	custURL
+type Repository interface {
+	Save() bool
+	IsExist() bool
+}
+
+func (url *CustURL) Save() bool {
+	if url.IsExist() {
+		return false
+	}
+	SavedData[url.shorten] = url.full
+	return true
+}
+
+func (url *CustURL) IsExist() bool {
+	if _, ok := SavedData[url.shorten]; !ok {
+		return false
+	}
+	return true
 }
 
 var allowedMethods = map[string]string{

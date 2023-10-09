@@ -28,35 +28,35 @@ type Repository interface {
 
 	// IsExist проверка есть ли короткий урл в базе.
 	// True если есть, false - нет.
-	IsExist(shortUrl string, storage any) bool
+	IsExist(shortURL string, storage any) bool
 }
 
 func (url *fullURL) Save(storage any) shortURL {
-	sUrl := generateShortUrl(shortURLLen)
+	sURL := generateShortURL(shortURLLen)
 	s := storage.(map[string]string)
-	s[sUrl] = url.name
-	return shortURL(sUrl)
+	s[sURL] = url.name
+	return shortURL(sURL)
 }
 
-func (url *fullURL) IsExist(shortUrl string, storage any) bool {
+func (url *fullURL) IsExist(shortURL string, storage any) bool {
 	s := storage.(map[string]string)
-	if _, ok := s[shortUrl]; !ok {
+	if _, ok := s[shortURL]; !ok {
 		return false
 	}
 	return true
 }
 
-func GetFullURL(shortUrl string, storage any) string {
+func GetFullURLbyShortURL(shortURL string, storage any) string {
 	s := storage.(map[string]string)
-	val, ok := s[shortUrl]
+	val, ok := s[shortURL]
 	if !ok {
 		return ""
 	}
 	return val
 }
 
-// generateShortUrl возвращает строку из случайных символов.
-func generateShortUrl(n int64) string {
+// generateShortURL возвращает строку из случайных символов.
+func generateShortURL(n int64) string {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	shortKey := make([]byte, n)
 	for i := range shortKey {
@@ -83,8 +83,8 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		path := r.URL.Path
 		id := strings.Split(path, "/")[1]
-		fUrl := GetFullURL(id, URLs)
-		w.Header().Set("Location", fUrl)
+		fURL := GetFullURLbyShortURL(id, URLs)
+		w.Header().Set("Location", fURL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	default:

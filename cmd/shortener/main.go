@@ -73,6 +73,7 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 
 	switch r.Method {
+
 	case http.MethodPost:
 		fURL := fullURL{string(body)}
 		sURL := fURL.Save(URLs)
@@ -80,13 +81,18 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte(result))
+
 	case http.MethodGet:
 		path := r.URL.Path
 		id := strings.Split(path, "/")[1]
 		fURL := GetFullURLbyShortURL(id, URLs)
-		w.Header().Set("Location", fURL)
+
+		//log.Default().Println(fURL)
+
+		w.Header().Set("Location", "https://"+fURL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
+
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		return

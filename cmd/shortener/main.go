@@ -89,7 +89,7 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 
 		//log.Default().Println(fURL)
 
-		w.Header().Set("Location", "https://"+fURL)
+		w.Header().Set("Location", fURL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 

@@ -22,7 +22,7 @@ type FullURL struct {
 }
 type ShortURL string
 
-type Repository interface {
+type Saver interface {
 	// Save сохранение данных.
 	Save(storage any) ShortURL
 

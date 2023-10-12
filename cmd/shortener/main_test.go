@@ -57,6 +57,8 @@ func TestMainRouter(t *testing.T) {
 
 	for _, v := range testTable {
 		resp, _ := testRequest(t, ts, v.method, v.url)
+		resp.Body.Close() // для прохождения теста
+
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.contentType, resp.Header.Get("Content-Type"))
 	}

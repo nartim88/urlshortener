@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/nartim88/urlshortener/cmd/shortener/config"
 )
 
 var URLs = make(map[ShortURL]FullURL)
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-const host = "localhost"
-const port = "8080"
-const schema = "http"
 const shortURLLen = 8
 
 type FullURL struct {
@@ -76,7 +75,7 @@ func indexHandle(w http.ResponseWriter, r *http.Request) {
 
 	fURL := FullURL{string(body)}
 	sURL := fURL.Save(URLs)
-	result := schema + "://" + host + ":" + port + "/" + sURL
+	result := config.FlagBaseAddr + "/" + string(sURL)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
@@ -113,7 +112,9 @@ func mainRouter() chi.Router {
 }
 
 func main() {
-	err := http.ListenAndServe(host+":"+port, mainRouter())
+	config.InitConfigs()
+
+	err := http.ListenAndServe(config.FlagRunAddr, mainRouter())
 
 	if err != nil {
 		log.Fatal(err)

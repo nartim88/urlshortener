@@ -18,9 +18,7 @@ const port = "8080"
 const schema = "http"
 const shortURLLen = 8
 
-type FullURL struct {
-	name string
-}
+type FullURL string
 type ShortURL string
 
 type Saver interface {
@@ -52,7 +50,7 @@ func GetFullURLbyShortURL(sURL *ShortURL, storage any) FullURL {
 	s := storage.(map[ShortURL]FullURL)
 	val, ok := s[*sURL]
 	if !ok {
-		return FullURL{}
+		return ""
 	}
 	return val
 }
@@ -74,7 +72,7 @@ func indexHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	body, _ := io.ReadAll(r.Body)
 
-	fURL := FullURL{string(body)}
+	fURL := FullURL(body)
 	sURL := fURL.Save(URLs)
 	result := schema + "://" + host + ":" + port + "/" + sURL
 
@@ -88,12 +86,12 @@ func getURLHandle(w http.ResponseWriter, r *http.Request) {
 	sURL := ShortURL(id)
 
 	fURL := GetFullURLbyShortURL(&sURL, URLs)
-	if fURL.name == "" {
+	if fURL == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", fURL.name)
+	w.Header().Set("Location", string(fURL))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -5,7 +5,7 @@ type Config struct {
 	BaseURL string `env:"BASE_URL"`
 }
 
-var CFG = NewCFG()
+var CFG Config
 
 func NewCFG() *Config {
 	cfg := Config{
@@ -17,6 +17,8 @@ func NewCFG() *Config {
 
 // InitConfigs инициализация конфигов приложения
 func InitConfigs() {
+	CFG = *NewCFG()
+
 	parseFlags()
 	parseEnv()
 }

@@ -102,9 +102,6 @@ func Test_mainPage(t *testing.T) {
 			case http.MethodGet:
 				result := makeRequest(tt.method, tt.target, nil, mainPage)
 
-				err := result.Body.Close()
-				require.NoError(t, err)
-
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
 				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
@@ -112,9 +109,6 @@ func Test_mainPage(t *testing.T) {
 
 			default:
 				result := makeRequest(tt.method, tt.target, nil, mainPage)
-
-				err := result.Body.Close()
-				require.NoError(t, err)
 
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			}

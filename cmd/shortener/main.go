@@ -1,13 +1,12 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
-
-	"github.com/go-chi/chi/v5"
 )
 
 var URLs = make(map[ShortURL]FullURL)

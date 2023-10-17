@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/go-chi/chi/v5"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
-var URLs = make(map[ShortURL]FullURL)
+var URLs = make(map[string]string)
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const host = "localhost"
@@ -17,28 +17,28 @@ const port = "8080"
 const schema = "http"
 const shortURLLen = 8
 
-type FullURL struct {
+type fullURL struct {
 	name string
 }
-type ShortURL string
+type shortURL string
 
 type Repository interface {
 	// Save сохранение данных.
-	Save(storage any) ShortURL
+	Save(storage any) shortURL
 
 	// IsExist проверка есть ли короткий урл в базе.
 	// True если есть, false - нет.
 	IsExist(shortURL string, storage any) bool
 }
 
-func (url *FullURL) Save(storage any) ShortURL {
-	sURL := GenerateShortURL(shortURLLen)
-	s := storage.(map[ShortURL]FullURL)
-	s[sURL] = *url
-	return sURL
+func (url *fullURL) Save(storage any) shortURL {
+	sURL := generateShortURL(shortURLLen)
+	s := storage.(map[string]string)
+	s[sURL] = url.name
+	return shortURL(sURL)
 }
 
-func (url *FullURL) IsExist(shortURL string, storage any) bool {
+func (url *fullURL) IsExist(shortURL string, storage any) bool {
 	s := storage.(map[string]string)
 	if _, ok := s[shortURL]; !ok {
 		return false
@@ -46,74 +46,64 @@ func (url *FullURL) IsExist(shortURL string, storage any) bool {
 	return true
 }
 
-// GetFullURLbyShortURL возвращает полный урл по сокращенному.
-func GetFullURLbyShortURL(sURL *ShortURL, storage any) FullURL {
-	s := storage.(map[ShortURL]FullURL)
-	val, ok := s[*sURL]
+func GetFullURLbyShortURL(shortURL string, storage any) string {
+	s := storage.(map[string]string)
+	val, ok := s[shortURL]
 	if !ok {
-		return FullURL{}
+		return ""
 	}
 	return val
 }
 
-// GenerateShortURL возвращает строку из случайных символов.
-func GenerateShortURL(n int64) ShortURL {
+// generateShortURL возвращает строку из случайных символов.
+func generateShortURL(n int64) string {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	shortKey := make([]byte, n)
 	for i := range shortKey {
 		shortKey[i] = charset[rand.Intn(len(charset))]
 	}
-	return ShortURL(shortKey)
+	return string(shortKey)
 }
 
-func indexHandle(w http.ResponseWriter, r *http.Request) {
+func mainPage(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 	body, _ := io.ReadAll(r.Body)
 
-	fURL := FullURL{string(body)}
-	sURL := fURL.Save(URLs)
-	result := schema + "://" + host + ":" + port + "/" + sURL
+	switch r.Method {
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(result))
-}
+	case http.MethodPost:
+		fURL := fullURL{string(body)}
+		sURL := fURL.Save(URLs)
+		result := schema + "://" + host + ":" + port + "/" + sURL
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(result))
 
-func getURLHandle(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	sURL := ShortURL(id)
+	case http.MethodGet:
+		path := r.URL.Path
+		id := strings.Split(path, "/")[1]
+		fURL := GetFullURLbyShortURL(id, URLs)
 
-	fURL := GetFullURLbyShortURL(&sURL, URLs)
-	if fURL.name == "" {
-		w.WriteHeader(http.StatusNotFound)
+		//log.Default().Println(fURL)
+
+		w.Header().Set("Location", fURL)
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+
+	default:
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	w.Header().Set("Location", fURL.name)
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func mainRouter() chi.Router {
-	r := chi.NewRouter()
-
-	r.Route("/", func(r chi.Router) {
-		r.Post("/", indexHandle)
-
-		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", getURLHandle)
-		})
-	})
-
-	return r
 }
 
 func main() {
-	err := http.ListenAndServe(host+":"+port, mainRouter())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", mainPage)
 
+	err := http.ListenAndServe(host+":"+port, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

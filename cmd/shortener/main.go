@@ -44,8 +44,6 @@ func mainPage(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("Method not allowed."))
 	}
 	if meth == http.MethodPost {
-		w.Header().Set("Content-Type", "text/plain")
-
 	}
 }
 

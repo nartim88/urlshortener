@@ -2,10 +2,14 @@ package config
 
 import "flag"
 
-// parseFlags парсит флаги командной строки
+var (
+	FlagRunAddr  string
+	FlagBaseAddr string
+)
+
 func parseFlags() {
-	flag.StringVar(&CFG.RunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&CFG.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
+	flag.StringVar(&FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&FlagBaseAddr, "b", "http://localhost:8080", "server address before shorten URL")
 
 	flag.Parse()
 }

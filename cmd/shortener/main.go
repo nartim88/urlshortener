@@ -1,89 +1,51 @@
 package main
 
 import (
-	"io"
 	"log"
-	"math/rand"
 	"net/http"
-	"strings"
-	"time"
 )
 
-var URLs = make(map[string]string)
+var SavedData map[string]string
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-const host = "localhost"
-const port = "8080"
-const schema = "http"
-const shortURLLen = 8
-
-type fullURL struct {
-	name string
+type CustURL struct {
+	full    string
+	shorten string
 }
-type shortURL string
 
 type Repository interface {
-	// Save сохранение данных.
-	Save(storage any) shortURL
-
-	// IsExist проверка есть ли короткий урл в базе.
-	// True если есть, false - нет.
-	IsExist(shortUrl string) bool
+	Save() bool
+	IsExist() bool
 }
 
-func (url *fullURL) Save(storage any) shortURL {
-	sUrl := generateShortUrl(shortURLLen)
-	s := storage.(map[string]string)
-	s[sUrl] = url.name
-	return shortURL(sUrl)
+func (url *CustURL) Save() bool {
+	if url.IsExist() {
+		return false
+	}
+	SavedData[url.shorten] = url.full
+	return true
 }
 
-func (url *fullURL) IsExist(shortUrl string) bool {
-	if _, ok := URLs[shortUrl]; !ok {
+func (url *CustURL) IsExist() bool {
+	if _, ok := SavedData[url.shorten]; !ok {
 		return false
 	}
 	return true
 }
 
-// generateShortUrl возвращает строку из случайных символов.
-func generateShortUrl(n int64) string {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	shortKey := make([]byte, n)
-	for i := range shortKey {
-		shortKey[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(shortKey)
+var allowedMethods = map[string]string{
+	"GET":  http.MethodGet,
+	"POST": http.MethodPost,
 }
 
 func mainPage(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		_, _ = w.Write([]byte(err.Error()))
-		return
+	meth, ok := allowedMethods[r.Method]
+	if !ok {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_, _ = w.Write([]byte("Method not allowed."))
 	}
-	body, _ := io.ReadAll(r.Body)
-
-	if r.Method == http.MethodPost {
-		fURL := fullURL{string(body)}
-		sURL := fURL.Save(URLs)
-		result := schema + "://" + host + ":" + port + "/" + sURL
-
+	if meth == http.MethodPost {
 		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
 
-		_, _ = w.Write([]byte(result))
-
-	} else if r.Method == http.MethodGet {
-		path := r.URL.Path
-		id := strings.Split(path, "/")[1]
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusTemporaryRedirect)
-
-		_, _ = w.Write([]byte(id))
-
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		return
 	}
 }
 

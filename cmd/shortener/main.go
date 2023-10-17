@@ -74,7 +74,7 @@ func indexHandle(w http.ResponseWriter, r *http.Request) {
 
 	fURL := FullURL(body)
 	sURL := fURL.Save(URLs)
-	result := config.CFG.BaseURL + "/" + string(sURL)
+	result := config.FlagBaseAddr + "/" + string(sURL)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
@@ -113,9 +113,9 @@ func mainRouter() chi.Router {
 func main() {
 	config.InitConfigs()
 
-	fmt.Printf("Runnig server on %s", config.CFG.RunAddr)
+	fmt.Printf("Runnig server on %s", config.FlagRunAddr)
 
-	err := http.ListenAndServe(config.CFG.RunAddr, mainRouter())
+	err := http.ListenAndServe(config.FlagRunAddr, mainRouter())
 
 	if err != nil {
 		log.Fatal(err)

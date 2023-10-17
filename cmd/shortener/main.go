@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -112,8 +111,6 @@ func mainRouter() chi.Router {
 
 func main() {
 	config.InitConfigs()
-
-	fmt.Printf("Runnig server on %s", config.FlagRunAddr)
 
 	err := http.ListenAndServe(config.FlagRunAddr, mainRouter())
 

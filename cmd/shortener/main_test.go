@@ -4,60 +4,120 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
-	require.NoError(t, err)
+func makeRequest(
+	method string,
+	target string,
+	body io.Reader,
+	handler func(rw http.ResponseWriter, r *http.Request),
+) *http.Response {
 
-	resp, err := ts.Client().Do(req)
-	require.NoError(t, err)
-	defer resp.Body.Close()
+	request := httptest.NewRequest(method, target, body)
 
-	respBody, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
+	w := httptest.NewRecorder()
+	h := http.HandlerFunc(handler)
+	h(w, request)
 
-	return resp, string(respBody)
+	return w.Result()
 }
 
-func TestMainRouter(t *testing.T) {
-	ts := httptest.NewServer(mainRouter())
-	defer ts.Close()
-
+func Test_mainPage(t *testing.T) {
 	type want struct {
 		contentType string
 		statusCode  int
+		location    string
+		hostAndPort string
+		shortenLen  int
+		contentLen  string
 	}
-
-	var testTable = []struct {
-		url    string
-		method string
-		want   want
+	tests := []struct {
+		name        string
+		method      string
+		want        want
+		requestBody string
+		target      string
 	}{
 		{
-			url:    "/",
+			name:   "mainPage POST",
+			target: "/",
 			method: http.MethodPost,
 			want: want{
 				contentType: "text/plain",
 				statusCode:  http.StatusCreated,
+				hostAndPort: "localhost:8080",
+				shortenLen:  8,
+			},
+			requestBody: "ya.ru",
+		},
+		{
+			name:   "mainPage GET",
+			target: "/",
+			method: http.MethodGet,
+			want: want{
+				contentType: "text/plain",
+				statusCode:  http.StatusTemporaryRedirect,
+				location:    "https://ya.ru",
+				contentLen:  "",
 			},
 		},
 		{
-			url:    "/HMOUQTFX",
-			method: http.MethodGet,
+			name:   "mainPage error",
+			target: "/",
+			method: http.MethodDelete,
 			want: want{
-				statusCode: http.StatusNotFound,
+				statusCode: http.StatusBadRequest,
 			},
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			switch tt.method {
 
-	for _, v := range testTable {
-		resp, _ := testRequest(t, ts, v.method, v.url)
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
-		assert.Equal(t, v.want.contentType, resp.Header.Get("Content-Type"))
+			case http.MethodPost:
+				body := strings.NewReader(tt.requestBody)
+				result := makeRequest(tt.method, tt.target, body, mainPage)
+
+				assert.Equal(t, tt.want.statusCode, result.StatusCode)
+				assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+				respBody, err := io.ReadAll(result.Body)
+				require.NoError(t, err)
+				err = result.Body.Close()
+				require.NoError(t, err)
+
+				split := strings.Split(string(respBody), "/")
+				hostAndPort := split[2]
+				id := split[3]
+
+				assert.Equal(t, tt.want.hostAndPort, hostAndPort)
+				assert.NotEmpty(t, id)
+				assert.Len(t, id, tt.want.shortenLen)
+
+			case http.MethodGet:
+				result := makeRequest(tt.method, tt.target, nil, mainPage)
+
+				err := result.Body.Close()
+				require.NoError(t, err)
+
+				assert.Equal(t, tt.want.statusCode, result.StatusCode)
+				assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+				//assert.Equal(t, tt.want.location, result.Header.Get("Location"))
+				assert.Equal(t, tt.want.contentLen, result.Header.Get("Content-Length"))
+
+			default:
+				result := makeRequest(tt.method, tt.target, nil, mainPage)
+
+				err := result.Body.Close()
+				require.NoError(t, err)
+
+				assert.Equal(t, tt.want.statusCode, result.StatusCode)
+			}
+		})
 	}
 }

@@ -65,6 +65,7 @@ func GenerateShortURL(n int64) ShortURL {
 	return ShortURL(shortKey)
 }
 
+// indexHandle возвращает короткий УРЛ
 func indexHandle(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		_, _ = w.Write([]byte(err.Error()))
@@ -81,6 +82,7 @@ func indexHandle(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(result))
 }
 
+// getURLHandle возвращает полный УРЛ по короткому
 func getURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sURL := ShortURL(id)

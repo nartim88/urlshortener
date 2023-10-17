@@ -17,7 +17,9 @@ var URLs = make(map[ShortURL]FullURL)
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const shortURLLen = 8
 
-type FullURL string
+type FullURL struct {
+	name string
+}
 type ShortURL string
 
 type Saver interface {
@@ -49,7 +51,7 @@ func GetFullURLbyShortURL(sURL *ShortURL, storage any) FullURL {
 	s := storage.(map[ShortURL]FullURL)
 	val, ok := s[*sURL]
 	if !ok {
-		return ""
+		return FullURL{}
 	}
 	return val
 }
@@ -71,7 +73,7 @@ func indexHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	body, _ := io.ReadAll(r.Body)
 
-	fURL := FullURL(body)
+	fURL := FullURL{string(body)}
 	sURL := fURL.Save(URLs)
 	result := config.FlagBaseAddr + "/" + string(sURL)
 
@@ -85,12 +87,12 @@ func getURLHandle(w http.ResponseWriter, r *http.Request) {
 	sURL := ShortURL(id)
 
 	fURL := GetFullURLbyShortURL(&sURL, URLs)
-	if fURL == "" {
+	if fURL.name == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", string(fURL))
+	w.Header().Set("Location", fURL.name)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

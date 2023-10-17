@@ -107,7 +107,7 @@ func Test_mainPage(t *testing.T) {
 
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
-				//assert.Equal(t, tt.want.location, result.Header.Get("Location"))
+				assert.Equal(t, tt.want.location, result.Header.Get("Location"))
 				assert.Equal(t, tt.want.contentLen, result.Header.Get("Content-Length"))
 
 			default:

@@ -1,16 +1,14 @@
 package handlers
 
 import (
-	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/storage"
 )
-
-var URLs = make(map[storage.ShortURL]storage.FullURL)
 
 // IndexHandle возвращает короткий УРЛ
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
@@ -21,8 +19,13 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 
 	fURL := storage.FullURL(body)
-	sURL := fURL.Save(URLs)
-	result := shortener.CFG.BaseURL + "/" + string(sURL)
+	sURL, err := shortener.App.Store.Set(fURL)
+	if err != nil {
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	result := shortener.App.Configs.BaseURL + "/" + string(sURL)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
@@ -33,8 +36,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sURL := storage.ShortURL(id)
-
-	fURL := shortener.Get(&sURL, URLs)
+	fURL := shortener.App.Store.Get(sURL)
 	if fURL == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return

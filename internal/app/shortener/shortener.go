@@ -5,36 +5,41 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/nartim88/urlshortener/internal/config"
-	"github.com/nartim88/urlshortener/internal/routers"
 	"github.com/nartim88/urlshortener/internal/storage"
 )
 
-var CFG config.Config
+var (
+	App  Application
+	Conf config.Config
+	St   storage.Storage
+)
 
-type App struct {
-	store   storage.Storage
-	configs config.Config
+type Application struct {
+	Store   storage.Storage
+	Configs config.Config
 }
 
-func New() *App {
-	store := storage.New()
-	configs := config.New()
-	return &App{
-		store:   *store,
-		configs: *configs,
+func New() {
+	St = *storage.New()
+	Conf = *config.New()
+	App = Application{
+		Store:   St,
+		Configs: Conf,
 	}
 }
 
-func (app *App) Init() *App {
-	app.configs.Set()
-	return app
+func (a *Application) Init() *Application {
+	a.Configs.Parse()
+	return a
 }
 
-func (app *App) Run() {
-	fmt.Printf("Runnig server on %s", app.configs.RunAddr)
+func (a *Application) Run(router chi.Router) {
+	fmt.Printf("Runnig server on %s", a.Configs.RunAddr)
 
-	err := http.ListenAndServe(app.configs.RunAddr, routers.MainRouter())
+	err := http.ListenAndServe(a.Configs.RunAddr, router)
 
 	if err != nil {
 		log.Fatal(err)

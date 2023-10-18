@@ -8,42 +8,43 @@ const shortURLLen = 8
 
 type FullURL string
 type ShortURL string
+type URLs map[ShortURL]FullURL
 
 type Storage struct {
-	URLs map[ShortURL]FullURL
+	URLs URLs
 }
 
+// New инициализация Storage
 func New() *Storage {
-	store := &Storage{
-		URLs: make(map[ShortURL]FullURL),
+	return &Storage{
+		URLs: make(URLs),
 	}
-	return store
 }
 
 // Get возвращает полный урл по сокращенному.
-func (s *Storage) Get(shortURL ShortURL) FullURL {
-	if !s.IsExist(shortURL) {
+func (s *Storage) Get(sURL ShortURL) FullURL {
+	if !s.IsExist(sURL) {
 		return ""
 	}
-	return s.URLs[shortURL]
+	return s.URLs[sURL]
 }
 
 // Set сохраняет в память полный УРЛ и соответствующий ему короткий УРЛ
-func (s *Storage) Set(fullURL FullURL) error {
+func (s *Storage) Set(fURL FullURL) (ShortURL, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
 	shortURL := ShortURL(randChars)
 
 	if !s.IsExist(shortURL) {
-		s.URLs[shortURL] = fullURL
-		return nil
+		s.URLs[shortURL] = fURL
+		return shortURL, nil
 	}
 
-	return URLExistsError{string(fullURL)}
+	return "", URLExistsError{string(fURL)}
 }
 
 // IsExist проверяет сохранен ли в памяти короткий УРЛ
-func (s *Storage) IsExist(shortURL ShortURL) bool {
-	if _, ok := s.URLs[shortURL]; !ok {
+func (s *Storage) IsExist(sURL ShortURL) bool {
+	if _, ok := s.URLs[sURL]; !ok {
 		return false
 	}
 	return true

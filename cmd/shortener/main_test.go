@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/routers"
 	"io"
 	"net/http"
@@ -17,7 +18,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
@@ -26,6 +30,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestMainRouter(t *testing.T) {
+	shortener.New() // init variables for test
+
 	ts := httptest.NewServer(routers.MainRouter())
 	defer ts.Close()
 
@@ -58,7 +64,7 @@ func TestMainRouter(t *testing.T) {
 
 	for _, v := range testTable {
 		resp, _ := testRequest(t, ts, v.method, v.url)
-		resp.Body.Close() // для прохождения теста
+		_ = resp.Body.Close() // для прохождения теста
 
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.contentType, resp.Header.Get("Content-Type"))

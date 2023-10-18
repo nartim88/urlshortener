@@ -20,15 +20,15 @@ func New() *Config {
 	return &cfg
 }
 
-// Set инициализация конфигов приложения
-func (conf *Config) Set() {
+// Parse инициализация конфигов приложения
+func (conf *Config) Parse() {
 	conf.parseFlags()
 	conf.parseEnv()
 }
 
 // parseEnv парсинг переменных окружения
 func (conf *Config) parseEnv() {
-	err := env.Parse(&conf)
+	err := env.Parse(conf)
 	if err != nil {
 		log.Fatal(err)
 	}

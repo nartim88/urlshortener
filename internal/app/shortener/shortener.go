@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/nartim88/urlshortener/internal/config"
 	"github.com/nartim88/urlshortener/internal/storage"
 )
@@ -38,7 +36,7 @@ func (a *Application) Init() *Application {
 	return a
 }
 
-func (a *Application) Run(router chi.Router) {
+func (a *Application) Run(h http.Handler) {
 	var srv http.Server
 
 	log.Printf("Runnig server on %s", a.Configs.RunAddr)
@@ -56,7 +54,7 @@ func (a *Application) Run(router chi.Router) {
 	}()
 
 	srv.Addr = a.Configs.RunAddr
-	srv.Handler = router
+	srv.Handler = h
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe: %v", err)

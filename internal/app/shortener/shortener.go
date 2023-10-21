@@ -1,9 +1,11 @@
 package shortener
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"github.com/go-chi/chi/v5"
 
@@ -37,11 +39,28 @@ func (a *Application) Init() *Application {
 }
 
 func (a *Application) Run(router chi.Router) {
-	fmt.Printf("Runnig server on %s", a.Configs.RunAddr)
+	var srv http.Server
 
-	err := http.ListenAndServe(a.Configs.RunAddr, router)
+	log.Printf("Runnig server on %s", a.Configs.RunAddr)
 
-	if err != nil {
-		log.Fatal(err)
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	srv.Addr = a.Configs.RunAddr
+	srv.Handler = router
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
+
+	<-idleConnsClosed
 }

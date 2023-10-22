@@ -32,7 +32,7 @@ func (conf *Config) Parse() {
 func (conf *Config) parseEnv() {
 	err := env.Parse(conf)
 	if err != nil {
-		logger.Log.Info().Err(err)
+		logger.Log.Info().Err(err).Send()
 	}
 }
 

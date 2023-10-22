@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
@@ -13,6 +14,7 @@ import (
 // IndexHandle возвращает короткий УРЛ
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
+		logger.Log.Info().Stack().Err(err).Send()
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
@@ -21,6 +23,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	fURL := storage.FullURL(body)
 	sURL, err := shortener.App.Store.Set(fURL)
 	if err != nil {
+		logger.Log.Info().Stack().Err(err).Send()
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}

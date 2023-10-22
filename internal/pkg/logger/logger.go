@@ -2,23 +2,31 @@ package logger
 
 import (
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 )
 
-const defLogLevel = zerolog.InfoLevel
-
-var Log = zerolog.New(os.Stdout).Level(defLogLevel).With().Timestamp().Logger()
+var Log = zerolog.Nop()
 
 func Init(level string) error {
-	logger := zerolog.New(os.Stdout)
+	logger := zerolog.New(
+		zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			TimeFormat: time.RFC3339Nano,
+		},
+	)
 
 	logLevel, err := getLogLevel(level)
 	if err != nil {
 		return err
 	}
 
-	logger = logger.Level(*logLevel).With().Timestamp().Logger()
+	logger = logger.Level(*logLevel).With().
+		Timestamp().
+		Caller().
+		Int("pid", os.Getgid()).
+		Logger()
 
 	Log = logger
 
@@ -38,7 +46,7 @@ func getLogLevel(level string) (*zerolog.Level, error) {
 
 	zLogLevel, ok := logLevels[level]
 	if !ok {
-		return nil, LogLevelError{"the given log level doesn't supported by logger"}
+		return nil, LogLevelError{"the given log level doesn't supported by logger", level}
 	}
 
 	return &zLogLevel, nil

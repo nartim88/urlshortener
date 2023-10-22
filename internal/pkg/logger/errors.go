@@ -3,9 +3,10 @@ package logger
 import "fmt"
 
 type LogLevelError struct {
-	msg string
+	msg  string
+	data any
 }
 
 func (e LogLevelError) Error() string {
-	return fmt.Sprint(e.msg)
+	return fmt.Sprintf("%s: %v", e.msg, e.data)
 }

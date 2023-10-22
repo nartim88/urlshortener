@@ -23,18 +23,22 @@ type Application struct {
 	Configs config.Config
 }
 
-func New() {
+func New() *Application {
 	St = *storage.New()
 	Conf = *config.New()
 	App = Application{
 		Store:   St,
 		Configs: Conf,
 	}
+	return &App
 }
 
-func (a *Application) Init() *Application {
+func (a *Application) Init() {
+	if err := logger.Init(a.Configs.LogLevel); err != nil {
+		logger.Log.Info().Stack().Err(err).Send()
+	}
+
 	a.Configs.Parse()
-	return a
 }
 
 func (a *Application) Run(h http.Handler) {
@@ -49,7 +53,7 @@ func (a *Application) Run(h http.Handler) {
 		<-sigint
 
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Log.Info().Err(err)
+			logger.Log.Info().Stack().Err(err).Send()
 		}
 		close(idleConnsClosed)
 	}()
@@ -58,7 +62,7 @@ func (a *Application) Run(h http.Handler) {
 	srv.Handler = h
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		logger.Log.Info().Err(err)
+		logger.Log.Info().Stack().Err(err).Send()
 	}
 
 	<-idleConnsClosed

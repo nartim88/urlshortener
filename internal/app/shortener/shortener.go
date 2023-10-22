@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/nartim88/urlshortener/internal/config"
 	"github.com/nartim88/urlshortener/internal/storage"
@@ -44,7 +45,7 @@ func (a *Application) Run(h http.Handler) {
 	idleConnsClosed := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
 		<-sigint
 
 		if err := srv.Shutdown(context.Background()); err != nil {
@@ -61,4 +62,5 @@ func (a *Application) Run(h http.Handler) {
 	}
 
 	<-idleConnsClosed
+	log.Print("Server closed.")
 }

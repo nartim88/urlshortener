@@ -22,7 +22,7 @@ func WithLogging(next http.Handler) http.Handler {
 			status: 0,
 			size:   0,
 		}
-		lrw := loggingResponseData{
+		lrw := loggingResponseWriter{
 			ResponseWriter: rw,
 			responseData:   respData,
 		}

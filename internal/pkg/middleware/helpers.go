@@ -7,19 +7,19 @@ type (
 		status int
 		size   int
 	}
-	loggingResponseData struct {
+	loggingResponseWriter struct {
 		http.ResponseWriter
 		responseData *responseData
 	}
 )
 
-func (r *loggingResponseData) Write(b []byte) (int, error) {
+func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
 	return size, err
 }
 
-func (r *loggingResponseData) WriteHeader(statusCode int) {
+func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }

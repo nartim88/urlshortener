@@ -2,9 +2,9 @@ package config
 
 import (
 	"flag"
-	"log"
 
 	"github.com/caarlos0/env"
+	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
 
 type Config struct {
@@ -32,7 +32,7 @@ func (conf *Config) Parse() {
 func (conf *Config) parseEnv() {
 	err := env.Parse(conf)
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Info().Err(err)
 	}
 }
 
@@ -41,5 +41,6 @@ func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.RunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&conf.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
 	flag.StringVar(&conf.LogLevel, "l", "info", "log level")
+
 	flag.Parse()
 }

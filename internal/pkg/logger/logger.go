@@ -8,15 +8,20 @@ import (
 
 const defLogLevel = zerolog.InfoLevel
 
-var Log zerolog.Logger = zerolog.New(os.Stdout).Level(defLogLevel).With().Timestamp().Logger()
+var Log = zerolog.New(os.Stdout).Level(defLogLevel).With().Timestamp().Logger()
 
 func Init(level string) error {
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stdout)
+
 	logLevel, err := getLogLevel(level)
 	if err != nil {
 		return err
 	}
-	logger.Level(*logLevel)
+
+	logger = logger.Level(*logLevel).With().Timestamp().Logger()
+
+	Log = logger
+
 	return nil
 }
 

@@ -6,13 +6,14 @@ import (
 
 const shortURLLen = 8
 
-type FullURL string
-type ShortURL string
-type URLs map[ShortURL]FullURL
-
-type Storage struct {
-	URLs URLs
-}
+type (
+	FullURL  string
+	ShortURL string
+	URLs     map[ShortURL]FullURL
+	Storage  struct {
+		URLs URLs
+	}
+)
 
 // New инициализация Storage
 func New() *Storage {

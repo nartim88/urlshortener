@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nartim88/urlshortener/internal/config"
-	"github.com/nartim88/urlshortener/internal/storage"
+	"github.com/nartim88/urlshortener/internal/pkg/config"
+	"github.com/nartim88/urlshortener/internal/pkg/storage"
 )
 
 var (

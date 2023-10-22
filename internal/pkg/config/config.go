@@ -8,14 +8,16 @@ import (
 )
 
 type Config struct {
-	RunAddr string `env:"SERVER_ADDRESS"`
-	BaseURL string `env:"BASE_URL"`
+	RunAddr  string `env:"SERVER_ADDRESS"`
+	BaseURL  string `env:"BASE_URL"`
+	LogLevel string `env:"LOG_LEVEL"`
 }
 
 func New() *Config {
 	cfg := Config{
-		RunAddr: "localhost:8080",
-		BaseURL: "http://localhost",
+		RunAddr:  "localhost:8080",
+		BaseURL:  "http://localhost",
+		LogLevel: "info",
 	}
 	return &cfg
 }
@@ -38,5 +40,6 @@ func (conf *Config) parseEnv() {
 func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.RunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&conf.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
+	flag.StringVar(&conf.LogLevel, "l", "info", "log level")
 	flag.Parse()
 }

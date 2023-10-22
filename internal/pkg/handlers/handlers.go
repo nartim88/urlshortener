@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/nartim88/urlshortener/internal/pkg/storage"
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/storage"
 )
 
 // IndexHandle возвращает короткий УРЛ

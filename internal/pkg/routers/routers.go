@@ -2,8 +2,7 @@ package routers
 
 import (
 	"github.com/go-chi/chi/v5"
-
-	"github.com/nartim88/urlshortener/internal/handlers"
+	"github.com/nartim88/urlshortener/internal/pkg/handlers"
 )
 
 func MainRouter() chi.Router {

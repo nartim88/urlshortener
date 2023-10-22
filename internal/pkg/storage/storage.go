@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/nartim88/urlshortener/internal/service"
+	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
 
 const shortURLLen = 8

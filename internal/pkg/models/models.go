@@ -1,6 +1,7 @@
 package models
 
 type Request struct {
+	URL string `json:"url"`
 }
 
 type Response struct {
@@ -8,5 +9,5 @@ type Response struct {
 }
 
 type ResponsePayload struct {
-	Text string `json:"text"`
+	URL string `json:"url"`
 }

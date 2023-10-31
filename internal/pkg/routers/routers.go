@@ -19,5 +19,17 @@ func MainRouter() chi.Router {
 		})
 	})
 
+	r.Mount("/api", apiRouter())
+
+	return r
+}
+
+func apiRouter() chi.Router {
+	r := chi.NewRouter()
+
+	r.Route("/", func(r chi.Router) {
+		r.Post("/shorten", handlers.JSONGetShortURLHandle)
+	})
+
 	return r
 }

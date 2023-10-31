@@ -1,7 +1,7 @@
 package models
 
 type Request struct {
-	URL string `json:"url"`
+	FullURL FullURL `json:"full_url"`
 }
 
 type Response struct {
@@ -9,5 +9,9 @@ type Response struct {
 }
 
 type ResponsePayload struct {
-	URL string `json:"url"`
+	Result string `json:"result"`
 }
+
+type FullURL string
+
+type ShortURL string

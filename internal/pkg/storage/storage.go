@@ -1,16 +1,15 @@
 package storage
 
 import (
+	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
 
 const shortURLLen = 8
 
 type (
-	FullURL  string
-	ShortURL string
-	URLs     map[ShortURL]FullURL
-	Storage  struct {
+	URLs    map[models.ShortURL]models.FullURL
+	Storage struct {
 		URLs URLs
 	}
 )
@@ -23,7 +22,7 @@ func New() *Storage {
 }
 
 // Get возвращает полный урл по сокращенному.
-func (s *Storage) Get(sURL ShortURL) FullURL {
+func (s *Storage) Get(sURL models.ShortURL) models.FullURL {
 	if !s.IsExist(sURL) {
 		return ""
 	}
@@ -31,9 +30,9 @@ func (s *Storage) Get(sURL ShortURL) FullURL {
 }
 
 // Set сохраняет в память полный УРЛ и соответствующий ему короткий УРЛ
-func (s *Storage) Set(fURL FullURL) (ShortURL, error) {
+func (s *Storage) Set(fURL models.FullURL) (models.ShortURL, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
-	shortURL := ShortURL(randChars)
+	shortURL := models.ShortURL(randChars)
 
 	if !s.IsExist(shortURL) {
 		s.URLs[shortURL] = fURL
@@ -44,7 +43,7 @@ func (s *Storage) Set(fURL FullURL) (ShortURL, error) {
 }
 
 // IsExist проверяет сохранен ли в памяти короткий УРЛ
-func (s *Storage) IsExist(sURL ShortURL) bool {
+func (s *Storage) IsExist(sURL models.ShortURL) bool {
 	if _, ok := s.URLs[sURL]; !ok {
 		return false
 	}

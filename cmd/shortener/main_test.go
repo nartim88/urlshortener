@@ -9,6 +9,7 @@ import (
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,5 +70,51 @@ func TestMainRouter(t *testing.T) {
 
 		assert.Equal(t, v.want.statusCode, resp.StatusCode)
 		assert.Equal(t, v.want.contentType, resp.Header.Get("Content-Type"))
+	}
+}
+
+func TestAPI(t *testing.T) {
+	srv := httptest.NewServer(routers.MainRouter())
+	defer srv.Close()
+
+	type want struct {
+		contentType string
+		statusCode  int
+	}
+
+	var testCases = []struct {
+		name   string
+		path   string
+		method string
+		body   string
+		want   want
+	}{
+		{
+			name:   "method_post",
+			path:   "/api/shorten",
+			method: http.MethodPost,
+			body:   `{"url": "https://ya.ru"}`,
+			want: want{
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := resty.New().R()
+
+			req.Method = tc.method
+			req.URL = srv.URL + tc.path
+			req.Body = tc.body
+			req.Header.Set("Content-Type", "application/json")
+
+			resp, err := req.Send()
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want.statusCode, resp.StatusCode())
+			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
+		})
 	}
 }

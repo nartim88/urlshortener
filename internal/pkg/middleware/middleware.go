@@ -43,13 +43,16 @@ func WithLogging(next http.Handler) http.Handler {
 
 func GZipMiddleware(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
-		rwOriginal := Compress(rw, r)
+		rw, err := Compress(rw, r)
+		if err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
 
 		if err := Decompress(r); err != nil {
 			logger.Log.Info().Err(err).Send()
 		}
 
-		next.ServeHTTP(rwOriginal, r)
+		next.ServeHTTP(rw, r)
 	}
 	return http.HandlerFunc(f)
 }

@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
 
 type (
@@ -93,7 +91,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func Compress(rw http.ResponseWriter, r *http.Request) http.ResponseWriter {
+func Compress(rw http.ResponseWriter, r *http.Request) (http.ResponseWriter, error) {
 	contentType := r.Header.Get("Content-Type")
 	canCompress := strings.Contains(contentType, "text/html")
 	canCompress = strings.Contains(contentType, "application/json")
@@ -103,11 +101,11 @@ func Compress(rw http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	if canCompress && supportsGzip {
 		cw := newCompressWriter(rw)
 		if err := cw.Close(); err != nil {
-			logger.Log.Info().Err(err).Send()
+			return nil, err
 		}
-		return cw
+		return cw, nil
 	}
-	return rw
+	return rw, nil
 }
 
 func Decompress(r *http.Request) error {

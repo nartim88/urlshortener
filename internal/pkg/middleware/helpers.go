@@ -80,7 +80,7 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
-func (c compressReader) Read(p []byte) (n int, err error) {
+func (c *compressReader) Read(p []byte) (n int, err error) {
 	return c.zr.Read(p)
 }
 
@@ -89,23 +89,6 @@ func (c *compressReader) Close() error {
 		return err
 	}
 	return c.zr.Close()
-}
-
-func Compress(rw *http.ResponseWriter, r *http.Request) error {
-	contentType := r.Header.Get("Content-Type")
-	canCompress := strings.Contains(contentType, "text/html")
-	canCompress = strings.Contains(contentType, "application/json")
-	acceptEncoding := r.Header.Get("Accept-Encoding")
-	supportsGzip := strings.Contains(acceptEncoding, "gzip")
-
-	if canCompress && supportsGzip {
-		cw := newCompressWriter(*rw)
-		if err := cw.Close(); err != nil {
-			return err
-		}
-		*rw = cw
-	}
-	return nil
 }
 
 func Decompress(r *http.Request) error {
@@ -119,9 +102,19 @@ func Decompress(r *http.Request) error {
 		}
 
 		r.Body = cr
-		if err := cr.Close(); err != nil {
+		if err = cr.Close(); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func CanCompress(r http.Request) bool {
+	contentType := r.Header.Get("Content-Type")
+	canCompress := strings.Contains(contentType, "text/html")
+	canCompress = strings.Contains(contentType, "application/json")
+	acceptEncoding := r.Header.Get("Accept-Encoding")
+	supportsGzip := strings.Contains(acceptEncoding, "gzip")
+
+	return canCompress && supportsGzip
 }

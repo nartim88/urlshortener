@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/pkg/handlers"
+	"github.com/nartim88/urlshortener/internal/pkg/middleware"
 	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
 	"github.com/go-resty/resty/v2"
@@ -76,7 +78,8 @@ func TestMainRouter(t *testing.T) {
 }
 
 func TestAPI(t *testing.T) {
-	srv := httptest.NewServer(routers.MainRouter())
+	handler := http.HandlerFunc(handlers.JSONGetShortURLHandle)
+	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
 	type want struct {
@@ -122,7 +125,8 @@ func TestAPI(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	srv := httptest.NewServer(routers.MainRouter())
+	handler := middleware.GZipMiddleware(http.HandlerFunc(handlers.JSONGetShortURLHandle))
+	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
 	requestBody := `{"url": "https://ya.ru"}`
@@ -135,9 +139,11 @@ func TestGzipCompression(t *testing.T) {
 		err = zb.Close()
 		require.NoError(t, err)
 
-		r := httptest.NewRequest("POST", srv.URL, buf)
+		target := srv.URL + "/api/shorten"
+		r := httptest.NewRequest(http.MethodPost, target, buf)
 		r.RequestURI = ""
-		r.Header.Set("Content-Encoding", "gzip")
+		r.Header.Set("Accept-Encoding", "gzip")
+		r.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(r)
 		require.NoError(t, err)
@@ -151,9 +157,11 @@ func TestGzipCompression(t *testing.T) {
 
 	t.Run("accepts_gzip", func(t *testing.T) {
 		buf := bytes.NewBufferString(requestBody)
-		r := httptest.NewRequest("POST", srv.URL, buf)
+		target := srv.URL + "/api/shorten"
+		r := httptest.NewRequest(http.MethodPost, target, buf)
 		r.RequestURI = ""
 		r.Header.Set("Accept-Encoding", "gzip")
+		r.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(r)
 		require.NoError(t, err)

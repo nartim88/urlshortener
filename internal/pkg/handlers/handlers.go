@@ -12,29 +12,48 @@ import (
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 )
 
+const (
+	contentType     = "Content-Type"
+	textPlain       = "text/plain"
+	applicationJson = "application/json"
+)
+
 // IndexHandle возвращает короткий УРЛ
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
-		_, _ = w.Write([]byte(err.Error()))
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
 		return
 	}
-	body, _ := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
 
 	fURL := models.FullURL(body)
 	sURL, err := shortener.App.Store.Set(fURL)
 
 	if err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
-		_, _ = w.Write([]byte(err.Error()))
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
 		return
 	}
 
 	result := shortener.App.Configs.BaseURL + "/" + string(sURL)
 
-	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set(contentType, textPlain)
 	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(result))
+	_, err = w.Write([]byte(result))
+
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
 }
 
 // GetURLHandle возвращает полный УРЛ по короткому
@@ -49,7 +68,7 @@ func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Location", string(fURL))
-	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set(contentType, textPlain)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
@@ -72,7 +91,6 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sURL, err := shortener.App.Store.Set(req.FullURL)
-
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -87,14 +105,16 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respDecoded, err := json.Marshal(resp.Response)
-
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJson)
 	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write(respDecoded)
+	_, err = w.Write(respDecoded)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
 }

@@ -35,7 +35,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestMainRouter(t *testing.T) {
-	shortener.New() // init variables for test
+	shortener.NewApplication() // init variables for test
 
 	ts := httptest.NewServer(routers.MainRouter())
 	defer ts.Close()

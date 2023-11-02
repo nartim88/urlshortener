@@ -23,17 +23,18 @@ type Application struct {
 	Configs config.Config
 }
 
-func New() *Application {
+func NewApplication() {
 	St = *storage.New()
 	Conf = *config.New()
 	App = Application{
 		Store:   St,
 		Configs: Conf,
 	}
-	return &App
 }
 
 func (a *Application) Init() {
+	NewApplication()
+
 	if err := logger.Init(a.Configs.LogLevel); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
 	}

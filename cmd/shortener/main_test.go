@@ -10,7 +10,6 @@ import (
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/pkg/handlers"
-	"github.com/nartim88/urlshortener/internal/pkg/middleware"
 	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
 	"github.com/go-resty/resty/v2"
@@ -125,8 +124,7 @@ func TestAPI(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	handler := middleware.GZipMiddleware(http.HandlerFunc(handlers.JSONGetShortURLHandle))
-	srv := httptest.NewServer(handler)
+	srv := httptest.NewServer(routers.MainRouter())
 	defer srv.Close()
 
 	requestBody := `{"url": "https://ya.ru"}`
@@ -142,7 +140,7 @@ func TestGzipCompression(t *testing.T) {
 		target := srv.URL + "/api/shorten"
 		r := httptest.NewRequest(http.MethodPost, target, buf)
 		r.RequestURI = ""
-		r.Header.Set("Accept-Encoding", "gzip")
+		r.Header.Set("Content-Encoding", "gzip")
 		r.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(r)

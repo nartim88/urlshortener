@@ -91,7 +91,7 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func Compress(rw http.ResponseWriter, r *http.Request) (http.ResponseWriter, error) {
+func Compress(rw *http.ResponseWriter, r *http.Request) error {
 	contentType := r.Header.Get("Content-Type")
 	canCompress := strings.Contains(contentType, "text/html")
 	canCompress = strings.Contains(contentType, "application/json")
@@ -99,13 +99,13 @@ func Compress(rw http.ResponseWriter, r *http.Request) (http.ResponseWriter, err
 	supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
 	if canCompress && supportsGzip {
-		cw := newCompressWriter(rw)
+		cw := newCompressWriter(*rw)
 		if err := cw.Close(); err != nil {
-			return nil, err
+			return err
 		}
-		return cw, nil
+		*rw = cw
 	}
-	return rw, nil
+	return nil
 }
 
 func Decompress(r *http.Request) error {

@@ -9,6 +9,7 @@ import (
 
 var All = []func(http.Handler) http.Handler{
 	WithLogging,
+	GZipMiddleware,
 }
 
 func WithLogging(next http.Handler) http.Handler {
@@ -36,6 +37,19 @@ func WithLogging(next http.Handler) http.Handler {
 			Int("status", respData.status).
 			Int("size", respData.size).
 			Send()
+	}
+	return http.HandlerFunc(f)
+}
+
+func GZipMiddleware(next http.Handler) http.Handler {
+	f := func(rw http.ResponseWriter, r *http.Request) {
+		rwOriginal := Compress(rw, r)
+
+		if err := Decompress(r); err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
+
+		next.ServeHTTP(rwOriginal, r)
 	}
 	return http.HandlerFunc(f)
 }

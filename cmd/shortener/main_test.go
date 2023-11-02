@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -117,4 +119,52 @@ func TestAPI(t *testing.T) {
 			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
 		})
 	}
+}
+
+func TestGzipCompression(t *testing.T) {
+	srv := httptest.NewServer(routers.MainRouter())
+	defer srv.Close()
+
+	requestBody := `{"url": "https://ya.ru"}`
+
+	t.Run("sends_gzip", func(t *testing.T) {
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+		_, err := zb.Write([]byte(requestBody))
+		require.NoError(t, err)
+		err = zb.Close()
+		require.NoError(t, err)
+
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Content-Encoding", "gzip")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	})
+
+	t.Run("accepts_gzip", func(t *testing.T) {
+		buf := bytes.NewBufferString(requestBody)
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Accept-Encoding", "gzip")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		zr, err := gzip.NewReader(resp.Body)
+		require.NoError(t, err)
+
+		_, err = io.ReadAll(zr)
+		require.NoError(t, err)
+	})
 }

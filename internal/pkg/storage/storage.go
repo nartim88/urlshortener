@@ -22,11 +22,12 @@ type Storage interface {
 type FileStorage struct {
 	// FilePath абсолютный путь к файлу для хранения данных
 	FilePath string
+	FilePerm os.FileMode
 }
 
 // NewFileStorage инициализация FileStorage
 func NewFileStorage(path string) (*FileStorage, error) {
-	s := FileStorage{path}
+	s := FileStorage{path, 0666}
 	if !s.fileExists() {
 		err := s.createFile()
 		if err != nil {
@@ -108,7 +109,7 @@ func (s *FileStorage) newScanner() (*bufio.Scanner, error) {
 }
 
 func (s *FileStorage) saveToFile(entry models.JsonEntry) error {
-	file, err := os.OpenFile(s.FilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+	file, err := os.OpenFile(s.FilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, s.FilePerm)
 	if err != nil {
 		return err
 	}
@@ -135,12 +136,10 @@ func (s *FileStorage) fileExists() bool {
 
 func (s *FileStorage) createFile() error {
 	f, err := os.Create(s.FilePath)
-	defer func(f *os.File) {
-		if err := f.Close(); err != nil {
-			logger.Log.Info().Err(err).Send()
-		}
-	}(f)
 	if err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
 		return err
 	}
 	return nil

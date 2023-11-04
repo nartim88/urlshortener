@@ -64,7 +64,7 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 		return nil, err
 	}
 
-	newEntry := models.JsonEntry{
+	newEntry := models.JSONEntry{
 		UUID:     &newUUID,
 		ShortURL: shortURL,
 		FullURL:  fURL,
@@ -78,8 +78,8 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 }
 
 // getByShortURL возвращает полный урл по короткому
-func (s *FileStorage) getByShortURL(sURL models.ShortURL) (*models.JsonEntry, error) {
-	var entry models.JsonEntry
+func (s *FileStorage) getByShortURL(sURL models.ShortURL) (*models.JSONEntry, error) {
+	var entry models.JSONEntry
 
 	scanner, err := s.newScanner()
 	if err != nil {
@@ -108,7 +108,7 @@ func (s *FileStorage) newScanner() (*bufio.Scanner, error) {
 	return bufio.NewScanner(buf), nil
 }
 
-func (s *FileStorage) saveToFile(entry models.JsonEntry) error {
+func (s *FileStorage) saveToFile(entry models.JSONEntry) error {
 	file, err := os.OpenFile(s.FilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, s.FilePerm)
 	if err != nil {
 		return err

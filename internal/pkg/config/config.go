@@ -14,8 +14,8 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
-// New инициализирует Config с дефолтными значениями
-func New() *Config {
+// NewConfig инициализирует Config с дефолтными значениями
+func NewConfig() *Config {
 	cfg := Config{
 		RunAddr:         "localhost:8080",
 		BaseURL:         "http://localhost",

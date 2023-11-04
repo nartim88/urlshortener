@@ -16,7 +16,7 @@ import (
 const (
 	contentType     = "Content-Type"
 	textPlain       = "text/plain"
-	applicationJson = "application/json"
+	applicationJSON = "application/json"
 )
 
 // IndexHandle возвращает короткий УРЛ
@@ -118,7 +118,7 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set(contentType, applicationJson)
+	w.Header().Set(contentType, applicationJSON)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(respDecoded)
 	if err != nil {

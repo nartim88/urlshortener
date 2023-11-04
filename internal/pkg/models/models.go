@@ -17,7 +17,7 @@ type ResponsePayload struct {
 	Result string `json:"result"`
 }
 
-type JsonEntry struct {
+type JSONEntry struct {
 	UUID     *uuid.UUID `json:"uuid"`
 	ShortURL ShortURL   `json:"short_url"`
 	FullURL  FullURL    `json:"full_url"`

@@ -1,5 +1,10 @@
 package models
 
+import "github.com/google/uuid"
+
+type FullURL string
+type ShortURL string
+
 type Request struct {
 	FullURL FullURL `json:"full_url"`
 }
@@ -12,6 +17,8 @@ type ResponsePayload struct {
 	Result string `json:"result"`
 }
 
-type FullURL string
-
-type ShortURL string
+type JsonEntry struct {
+	UUID     *uuid.UUID `json:"uuid"`
+	ShortURL ShortURL   `json:"short_url"`
+	FullURL  FullURL    `json:"full_url"`
+}

@@ -12,28 +12,27 @@ import (
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
 )
 
-var (
-	App  Application
-	Conf config.Config
-	St   storage.Storage
-)
+var App Application
 
 type Application struct {
-	Store   storage.Storage
+	Store   storage.FileStorage
 	Configs config.Config
 }
 
-func NewApplication() {
-	St = *storage.New()
-	Conf = *config.New()
+func newApplication() {
+	Conf := *config.New()
+	Store, err := storage.NewFileStorage(Conf.FileStoragePath)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
 	App = Application{
-		Store:   St,
+		Store:   *Store,
 		Configs: Conf,
 	}
 }
 
 func (a *Application) Init() {
-	NewApplication()
+	newApplication()
 
 	if err := logger.Init(a.Configs.LogLevel); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()

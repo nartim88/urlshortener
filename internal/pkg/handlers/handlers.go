@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -22,10 +23,7 @@ const (
 func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
-		_, err = w.Write([]byte(err.Error()))
-		if err != nil {
-			logger.Log.Info().Err(err).Send()
-		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
@@ -33,19 +31,22 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Info().Err(err).Send()
 	}
 
+	if len(body) == 0 {
+		err = errors.New("request Body is empty")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	fURL := models.FullURL(body)
 	sURL, err := shortener.App.Store.Set(fURL)
 
 	if err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
-		_, err = w.Write([]byte(err.Error()))
-		if err != nil {
-			logger.Log.Info().Err(err).Send()
-		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	result := shortener.App.Configs.BaseURL + "/" + string(sURL)
+	result := shortener.App.Configs.BaseURL + "/" + string(*sURL)
 
 	w.Header().Set(contentType, textPlain)
 	w.WriteHeader(http.StatusCreated)
@@ -60,14 +61,20 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sURL := models.ShortURL(id)
-	fURL := shortener.App.Store.Get(sURL)
+	fURL, err := shortener.App.Store.Get(sURL)
 
-	if fURL == "" {
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if fURL == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Location", string(fURL))
+	w.Header().Set("Location", string(*fURL))
 	w.Header().Set(contentType, textPlain)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
@@ -97,7 +104,7 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := shortener.App.Configs.BaseURL + "/" + string(sURL)
+	res := shortener.App.Configs.BaseURL + "/" + string(*sURL)
 	resp := models.Response{
 		Response: models.ResponsePayload{
 			Result: res,

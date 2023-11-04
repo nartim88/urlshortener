@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
@@ -35,7 +35,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.
 }
 
 func TestMainRouter(t *testing.T) {
-	shortener.NewApplication() // init variables for test
+	shortener.App.Init() // init variables for test
 
 	ts := httptest.NewServer(routers.MainRouter())
 	defer ts.Close()
@@ -45,20 +45,25 @@ func TestMainRouter(t *testing.T) {
 		statusCode  int
 	}
 
-	var testTable = []struct {
+	var testCases = []struct {
+		name   string
 		url    string
 		method string
+		body   string
 		want   want
 	}{
 		{
+			name:   "success_request",
 			url:    "/",
 			method: http.MethodPost,
+			body:   "https://ya.ru",
 			want: want{
 				contentType: "text/plain",
 				statusCode:  http.StatusCreated,
 			},
 		},
 		{
+			name:   "url_not_found",
 			url:    "/HMOUQTFX",
 			method: http.MethodGet,
 			want: want{
@@ -67,12 +72,15 @@ func TestMainRouter(t *testing.T) {
 		},
 	}
 
-	for _, v := range testTable {
-		resp, _ := testRequest(t, ts, v.method, v.url)
-		_ = resp.Body.Close() // для прохождения теста
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			buf := bytes.NewBufferString(tc.body)
+			resp, _ := testRequest(t, ts, tc.method, tc.url, buf)
+			defer resp.Body.Close()
 
-		assert.Equal(t, v.want.statusCode, resp.StatusCode)
-		assert.Equal(t, v.want.contentType, resp.Header.Get("Content-Type"))
+			assert.Equal(t, tc.want.statusCode, resp.StatusCode)
+			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
+		})
 	}
 }
 
@@ -138,12 +146,12 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 
 		target := srv.URL + "/api/shorten"
-		r := httptest.NewRequest(http.MethodPost, target, buf)
-		r.RequestURI = ""
-		r.Header.Set("Content-Encoding", "gzip")
-		r.Header.Set("Content-Type", "application/json")
+		req := httptest.NewRequest(http.MethodPost, target, buf)
+		req.RequestURI = ""
+		req.Header.Set("Content-Encoding", "gzip")
+		req.Header.Set("Content-Type", "application/json")
 
-		resp, err := http.DefaultClient.Do(r)
+		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -154,20 +162,21 @@ func TestGzipCompression(t *testing.T) {
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {
-		buf := bytes.NewBufferString(requestBody)
-		target := srv.URL + "/api/shorten"
-		r := httptest.NewRequest(http.MethodPost, target, buf)
-		r.RequestURI = ""
-		r.Header.Set("Accept-Encoding", "gzip")
-		r.Header.Set("Content-Type", "application/json")
+		req := resty.New().R()
+		req.URL = srv.URL + "/api/shorten"
+		req.Method = http.MethodPost
+		req.Body = requestBody
+		req.Header.Set("Accept-Encoding", "gzip")
+		req.Header.Set("Content-Type", "application/json")
+		req.SetDoNotParseResponse(true)
 
-		resp, err := http.DefaultClient.Do(r)
+		resp, err := req.Send()
+
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		require.Equal(t, http.StatusCreated, resp.StatusCode())
 
-		defer resp.Body.Close()
-
-		zr, err := gzip.NewReader(resp.Body)
+		zr, err := gzip.NewReader(resp.RawBody())
+		defer resp.RawBody().Close()
 		require.NoError(t, err)
 
 		_, err = io.ReadAll(zr)

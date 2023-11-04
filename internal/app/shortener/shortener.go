@@ -2,14 +2,14 @@ package shortener
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/nartim88/urlshortener/internal/pkg/config"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/storage"
+	"github.com/nartim88/urlshortener/internal/config"
+	"github.com/nartim88/urlshortener/internal/storage"
 )
 
 var (
@@ -23,28 +23,24 @@ type Application struct {
 	Configs config.Config
 }
 
-func New() *Application {
+func New() {
 	St = *storage.New()
 	Conf = *config.New()
 	App = Application{
 		Store:   St,
 		Configs: Conf,
 	}
-	return &App
 }
 
-func (a *Application) Init() {
-	if err := logger.Init(a.Configs.LogLevel); err != nil {
-		logger.Log.Info().Stack().Err(err).Send()
-	}
-
+func (a *Application) Init() *Application {
 	a.Configs.Parse()
+	return a
 }
 
 func (a *Application) Run(h http.Handler) {
 	var srv http.Server
 
-	logger.Log.Info().Msgf("Running server on %s", a.Configs.RunAddr)
+	log.Printf("Runnig server on %s", a.Configs.RunAddr)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
@@ -53,7 +49,7 @@ func (a *Application) Run(h http.Handler) {
 		<-sigint
 
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Log.Info().Stack().Err(err).Send()
+			log.Printf("HTTP server Shutdown: %v", err)
 		}
 		close(idleConnsClosed)
 	}()
@@ -62,9 +58,9 @@ func (a *Application) Run(h http.Handler) {
 	srv.Handler = h
 
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		logger.Log.Info().Stack().Err(err).Send()
+		log.Fatalf("HTTP server ListenAndServe: %v", err)
 	}
 
 	<-idleConnsClosed
-	logger.Log.Info().Msg("Server closed.")
+	log.Print("Server closed.")
 }

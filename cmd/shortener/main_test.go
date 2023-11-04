@@ -1,13 +1,12 @@
 package main
 
 import (
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/routers"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -2,12 +2,14 @@ package routers
 
 import (
 	"github.com/go-chi/chi/v5"
-
-	"github.com/nartim88/urlshortener/internal/handlers"
+	"github.com/nartim88/urlshortener/internal/pkg/handlers"
+	"github.com/nartim88/urlshortener/internal/pkg/middleware"
 )
 
 func MainRouter() chi.Router {
 	r := chi.NewRouter()
+
+	r.Use(middleware.All...)
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", handlers.IndexHandle)

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
@@ -19,6 +20,7 @@ type Storage interface {
 }
 
 type FileStorage struct {
+	// FilePath абсолютный путь к файлу для хранения данных
 	FilePath string
 }
 
@@ -106,24 +108,38 @@ func (s *FileStorage) newScanner() (*bufio.Scanner, error) {
 }
 
 func (s *FileStorage) saveToFile(entry models.JsonEntry) error {
-	data, err := json.Marshal(entry)
+	file, err := os.OpenFile(s.FilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.FilePath, data, 0666)
+	defer func(file *os.File) {
+		if err := file.Close(); err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
+	}(file)
+
+	w := json.NewEncoder(file)
+
+	if err = w.Encode(entry); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // fileExists проверяет существует ли FilePath
 func (s *FileStorage) fileExists() bool {
 	_, err := os.Stat(s.FilePath)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
+	return !os.IsNotExist(err)
 }
 
 func (s *FileStorage) createFile() error {
-	_, err := os.Create(s.FilePath)
+	f, err := os.Create(s.FilePath)
+	defer func(f *os.File) {
+		if err := f.Close(); err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
+	}(f)
 	if err != nil {
 		return err
 	}

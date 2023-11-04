@@ -6,7 +6,7 @@ type FullURL string
 type ShortURL string
 
 type Request struct {
-	FullURL FullURL `json:"full_url"`
+	FullURL FullURL `json:"url"`
 }
 
 type Response struct {

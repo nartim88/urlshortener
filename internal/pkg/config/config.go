@@ -25,8 +25,8 @@ func NewConfig() *Config {
 	return &cfg
 }
 
-// Parse инициализация парсинга конфигов из окружения и флагов
-func (conf *Config) Parse() {
+// ParseConfigs инициализация парсинга конфигов из окружения и флагов
+func (conf *Config) ParseConfigs() {
 	conf.parseFlags()
 	conf.parseEnv()
 }

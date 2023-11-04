@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,27 +20,24 @@ type Application struct {
 
 var App Application
 
-func newApplication() {
-	Conf := config.NewConfig()
-	Store, err := storage.NewFileStorage(Conf.FileStoragePath)
-	if err != nil {
-		logger.Log.Info().Err(err).Send()
-	}
-	App = Application{
-		Store:   Store,
-		Configs: *Conf,
-	}
-}
-
 // Init первичная инициализация приложения
 func (a *Application) Init() {
-	newApplication()
 
+	// инициализация конфигов
+	a.Configs = *config.NewConfig()
+	a.Configs.ParseConfigs()
+
+	// инициализация логгера
 	if err := logger.Init(a.Configs.LogLevel); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
-	a.Configs.Parse()
+	// инициализация хранилища
+	store, err := storage.NewFileStorage(a.Configs.FileStoragePath)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
+	a.Store = store
 }
 
 // Run запуск сервера
@@ -63,7 +61,7 @@ func (a *Application) Run(h http.Handler) {
 	srv.Addr = a.Configs.RunAddr
 	srv.Handler = h
 
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 

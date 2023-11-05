@@ -33,7 +33,7 @@ func (a *Application) Init() {
 	}
 
 	// инициализация хранилища
-	store, err := storage.NewFileStorage(a.Configs.FileStoragePath)
+	store, err := storage.NewStorage(a.Configs.FileStoragePath)
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 	}

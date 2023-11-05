@@ -25,8 +25,8 @@ type FileStorage struct {
 	FilePerm os.FileMode
 }
 
-// NewFileStorage инициализация FileStorage
-func NewFileStorage(path string) (*FileStorage, error) {
+// NewStorage инициализация конкретного Storage
+func NewStorage(path string) (Storage, error) {
 	s := FileStorage{path, 0666}
 	if !s.fileExists() {
 		err := s.createFile()

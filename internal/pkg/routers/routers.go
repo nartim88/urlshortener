@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/go-chi/chi/v5"
+
 	"github.com/nartim88/urlshortener/internal/pkg/handlers"
 	"github.com/nartim88/urlshortener/internal/pkg/middleware"
 )
@@ -17,6 +18,18 @@ func MainRouter() chi.Router {
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", handlers.GetURLHandle)
 		})
+	})
+
+	r.Mount("/api", apiRouter())
+
+	return r
+}
+
+func apiRouter() chi.Router {
+	r := chi.NewRouter()
+
+	r.Route("/", func(r chi.Router) {
+		r.Post("/shorten", handlers.JSONGetShortURLHandle)
 	})
 
 	return r

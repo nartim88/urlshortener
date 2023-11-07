@@ -2,6 +2,7 @@ package storage
 
 import "fmt"
 
+// URLExistsError урл уже существует в базе
 type URLExistsError struct {
 	URL string
 }

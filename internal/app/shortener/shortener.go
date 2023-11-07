@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,35 +13,34 @@ import (
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
 )
 
-var (
-	App  Application
-	Conf config.Config
-	St   storage.Storage
-)
-
 type Application struct {
 	Store   storage.Storage
 	Configs config.Config
 }
 
-func New() *Application {
-	St = *storage.New()
-	Conf = *config.New()
-	App = Application{
-		Store:   St,
-		Configs: Conf,
-	}
-	return &App
-}
+var App Application
 
+// Init первичная инициализация приложения
 func (a *Application) Init() {
+
+	// инициализация конфигов
+	a.Configs = *config.NewConfig()
+	a.Configs.ParseConfigs()
+
+	// инициализация логгера
 	if err := logger.Init(a.Configs.LogLevel); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
-	a.Configs.Parse()
+	// инициализация хранилища
+	store, err := storage.NewStorage(a.Configs.FileStoragePath)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
+	a.Store = store
 }
 
+// Run запуск сервера
 func (a *Application) Run(h http.Handler) {
 	var srv http.Server
 
@@ -61,7 +61,7 @@ func (a *Application) Run(h http.Handler) {
 	srv.Addr = a.Configs.RunAddr
 	srv.Handler = h
 
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 

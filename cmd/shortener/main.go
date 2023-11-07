@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-	app := shortener.New()
-	app.Init()
-	app.Run(routers.MainRouter())
+	shortener.App.Init()
+	shortener.App.Run(routers.MainRouter())
 }

@@ -8,27 +8,30 @@ import (
 )
 
 type Config struct {
-	RunAddr  string `env:"SERVER_ADDRESS"`
-	BaseURL  string `env:"BASE_URL"`
-	LogLevel string `env:"LOG_LEVEL"`
+	RunAddr         string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	LogLevel        string `env:"LOG_LEVEL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
-func New() *Config {
+// NewConfig инициализирует Config с дефолтными значениями
+func NewConfig() *Config {
 	cfg := Config{
-		RunAddr:  "localhost:8080",
-		BaseURL:  "http://localhost",
-		LogLevel: "info",
+		RunAddr:         "localhost:8080",
+		BaseURL:         "http://localhost",
+		LogLevel:        "info",
+		FileStoragePath: "/tmp/short-url-db.json",
 	}
 	return &cfg
 }
 
-// Parse инициализация конфигов приложения
-func (conf *Config) Parse() {
+// ParseConfigs инициализация парсинга конфигов из окружения и флагов
+func (conf *Config) ParseConfigs() {
 	conf.parseFlags()
 	conf.parseEnv()
 }
 
-// parseEnv парсинг переменных окружения
+// parseEnv парсит переменные окружения
 func (conf *Config) parseEnv() {
 	err := env.Parse(conf)
 	if err != nil {
@@ -36,11 +39,12 @@ func (conf *Config) parseEnv() {
 	}
 }
 
-// parseFlags парсинг флагов
+// parseFlags парсит флаги командной строки
 func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.RunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.StringVar(&conf.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
 	flag.StringVar(&conf.LogLevel, "l", "info", "log level")
+	flag.StringVar(&conf.FileStoragePath, "f", "/tmp/short-url-db.json", "full file name for saving URLs")
 
 	flag.Parse()
 }

@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"os"
+
 	"github.com/google/uuid"
+
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/service"
-	"os"
 )
 
 type FileStorage struct {
@@ -17,8 +19,8 @@ type FileStorage struct {
 	FilePerm os.FileMode
 }
 
-// NewStorage инициализация конкретного Storage
-func NewStorage(path string) (Storage, error) {
+// NewFileStorage инициализация конкретного Storage
+func NewFileStorage(path string) (Storage, error) {
 	s := FileStorage{path, 0666}
 	if !s.fileExists() {
 		err := s.createFile()

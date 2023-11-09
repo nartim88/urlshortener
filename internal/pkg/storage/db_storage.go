@@ -1,12 +1,24 @@
 package storage
 
-import "github.com/nartim88/urlshortener/internal/pkg/models"
+import (
+	"context"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/pkg/models"
+)
 
 type DBStorage struct {
+	conn *pgx.Conn
 }
 
 func NewDBStorage() (Storage, error) {
-	s := DBStorage{}
+	conn, err := pgx.Connect(context.Background(), shortener.App.Configs.DatabaseDSN)
+	if err != nil {
+		return nil, err
+	}
+	s := DBStorage{conn}
 	return &s, nil
 }
 

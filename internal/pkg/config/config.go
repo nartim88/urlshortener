@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
+
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
 
@@ -12,6 +13,7 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL"`
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 // NewConfig инициализирует Config с дефолтными значениями
@@ -45,6 +47,7 @@ func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
 	flag.StringVar(&conf.LogLevel, "l", "info", "log level")
 	flag.StringVar(&conf.FileStoragePath, "f", "/tmp/short-url-db.json", "full file name for saving URLs")
+	flag.StringVar(&conf.DatabaseDSN, "d", "", "database DSN")
 
 	flag.Parse()
 }

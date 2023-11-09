@@ -2,12 +2,15 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
@@ -124,4 +127,19 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 	}
+}
+
+func DBPingHandle(w http.ResponseWriter, r *http.Request) {
+	conn, err := pgx.Connect(context.Background(), shortener.App.Configs.DatabaseDSN)
+	if err != nil {
+		logger.Log.Info().Err(err).Send()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer func() {
+		if err := conn.Close(context.Background()); err != nil {
+			logger.Log.Info().Err(err).Send()
+		}
+	}()
+	w.WriteHeader(http.StatusOK)
 }

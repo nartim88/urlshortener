@@ -22,6 +22,8 @@ func MainRouter() chi.Router {
 
 	r.Mount("/api", apiRouter())
 
+	r.Mount("/ping", dbPingRouter())
+
 	return r
 }
 
@@ -32,5 +34,11 @@ func apiRouter() chi.Router {
 		r.Post("/shorten", handlers.JSONGetShortURLHandle)
 	})
 
+	return r
+}
+
+func dbPingRouter() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/", handlers.DBPingHandle)
 	return r
 }

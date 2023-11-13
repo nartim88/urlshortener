@@ -43,7 +43,7 @@ func apiRouter() http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/", func(r chi.Router) {
-		r.Post("/shorten", handlers.JSONGetShortURLHandle)
+		r.Post("/shorten", handlers.GetShortURLHandle)
 	})
 
 	return r

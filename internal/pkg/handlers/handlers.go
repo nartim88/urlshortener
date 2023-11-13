@@ -82,7 +82,7 @@ func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
+func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	var req models.Request
 	var buf bytes.Buffer
 

@@ -85,7 +85,7 @@ func TestMainRouter(t *testing.T) {
 }
 
 func TestAPI(t *testing.T) {
-	handler := http.HandlerFunc(handlers.JSONGetShortURLHandle)
+	handler := http.HandlerFunc(handlers.GetShortURLHandle)
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 

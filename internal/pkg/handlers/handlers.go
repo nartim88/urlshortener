@@ -99,6 +99,7 @@ func JSONGetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	logger.Log.Info().Str("full_url", string(req.FullURL)).Msg("incoming request data:")
 
 	sURL, err := shortener.App.Store.Set(req.FullURL)
 	if err != nil {

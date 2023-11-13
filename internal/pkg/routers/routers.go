@@ -20,7 +20,11 @@ func MainRouter() chi.Router {
 		})
 	})
 
-	r.Mount("/api", apiRouter())
+	r.Route("/api", func(r chi.Router) {
+		r.Mount("/", apiRouter())
+	})
+
+	//r.Mount("/api", apiRouter())
 
 	r.Mount("/ping", dbPingRouter())
 

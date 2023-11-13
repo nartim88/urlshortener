@@ -23,6 +23,7 @@ func NewConfig() *Config {
 		BaseURL:         "http://localhost",
 		LogLevel:        "info",
 		FileStoragePath: "/tmp/short-url-db.json",
+		DatabaseDSN:     "",
 	}
 	return &cfg
 }

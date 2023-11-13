@@ -131,6 +131,8 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func DBPingHandle(w http.ResponseWriter, r *http.Request) {
+	logger.Log.Info().Str("DATABASE_DSN", shortener.App.Configs.DatabaseDSN).Msg("trying to ping DB via")
+
 	conn, err := pgx.Connect(context.Background(), shortener.App.Configs.DatabaseDSN)
 	if err != nil {
 		logger.Log.Info().Err(err).Send()

@@ -57,7 +57,7 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 	}
 
 	newEntry := models.JSONEntry{
-		UUID:     &newUUID,
+		ID:       &newUUID,
 		ShortURL: shortURL,
 		FullURL:  fURL,
 	}

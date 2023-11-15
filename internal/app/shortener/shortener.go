@@ -32,6 +32,13 @@ func (a *Application) Init() {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
+	logger.Log.Info().Msg("App configs:")
+	logger.Log.Info().Str("SERVER_ADDRESS", a.Configs.RunAddr).Send()
+	logger.Log.Info().Str("BASE_URL", a.Configs.BaseURL).Send()
+	logger.Log.Info().Str("LOG_LEVEL", a.Configs.LogLevel).Send()
+	logger.Log.Info().Str("FILE_STORAGE_PATH", a.Configs.FileStoragePath).Send()
+	logger.Log.Info().Str("DATABASE_DSN", a.Configs.DatabaseDSN).Send()
+
 	// инициализация хранилища
 	store, err := storage.NewFileStorage(a.Configs.FileStoragePath)
 	if err != nil {

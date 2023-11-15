@@ -31,7 +31,6 @@ func NewFileStorage(path string) (Storage, error) {
 	return &s, nil
 }
 
-// Get возвращает полный урл по сокращенному.
 func (s *FileStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
 	entry, err := s.getByShortURL(sURL)
 	if err != nil {
@@ -43,7 +42,6 @@ func (s *FileStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
 	return &entry.FullURL, nil
 }
 
-// Set сохраняет в базу полный УРЛ и соответствующий ему короткий УРЛ
 func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
 	shortURL := models.ShortURL(randChars)

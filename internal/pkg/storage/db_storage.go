@@ -43,6 +43,7 @@ func (s *DBStorage) Close(ctx context.Context) error {
 	return errors.New("DB connection doesn't exists or already closed")
 }
 
+// createTable создание таблицы в бд
 func (s *DBStorage) createTable() error {
 	_, err := s.conn.Exec(
 		context.Background(),

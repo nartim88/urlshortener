@@ -2,8 +2,10 @@ package config
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/caarlos0/env"
+	"github.com/joho/godotenv"
 
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
@@ -14,6 +16,11 @@ type Config struct {
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	DBHost          string `env:"DB_HOST"`
+	DBPort          string `env:"DB_PORT"`
+	DBUser          string `env:"DB_USER"`
+	DBPassword      string `env:"DB_PASSWORD"`
+	DBName          string `env:"DB_NAME"`
 }
 
 // NewConfig инициализирует Config с дефолтными значениями
@@ -30,6 +37,7 @@ func NewConfig() *Config {
 
 // ParseConfigs инициализация парсинга конфигов из окружения и флагов
 func (conf *Config) ParseConfigs() {
+	conf.parseDotenv()
 	conf.parseFlags()
 	conf.parseEnv()
 }
@@ -44,11 +52,21 @@ func (conf *Config) parseEnv() {
 
 // parseFlags парсит флаги командной строки
 func (conf *Config) parseFlags() {
-	flag.StringVar(&conf.RunAddr, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(&conf.BaseURL, "b", "http://localhost:8080", "server address before shorten URL")
-	flag.StringVar(&conf.LogLevel, "l", "info", "log level")
-	flag.StringVar(&conf.FileStoragePath, "f", "/tmp/short-url-db.json", "full file name for saving URLs")
-	flag.StringVar(&conf.DatabaseDSN, "d", "", "database DSN")
+	var databaseDSN = fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s",
+		conf.DBHost, conf.DBPort, conf.DBUser, conf.DBPassword, conf.DBName)
+
+	flag.StringVar(&conf.RunAddr, "a", RunAddr, "address and port to run server")
+	flag.StringVar(&conf.BaseURL, "b", BaseURL, "server address before shorten URL")
+	flag.StringVar(&conf.LogLevel, "l", LogLevel, "log level")
+	flag.StringVar(&conf.FileStoragePath, "f", FileStoragePath, "full file name for saving URLs")
+	flag.StringVar(&conf.DatabaseDSN, "d", databaseDSN, "database DSN")
 
 	flag.Parse()
+}
+
+func (conf *Config) parseDotenv() {
+	if err := godotenv.Load(); err != nil {
+		logger.Log.Info().Err(err).Send()
+	}
 }

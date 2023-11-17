@@ -72,8 +72,8 @@ func (s DBStorage) createTable() (err error) {
 		`
 		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-		    full_url varchar(256),
-		    short_url varchar(8)
+		    full_url varchar(2048) NOT NULL,
+		    short_url varchar(8) NOT NULL
 		);
 		CREATE INDEX IF NOT EXISTS shortener_short_url_index ON shortener (short_url);
 		`,

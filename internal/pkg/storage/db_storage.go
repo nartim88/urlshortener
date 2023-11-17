@@ -71,9 +71,10 @@ func (s DBStorage) createTable() (err error) {
 		context.Background(),
 		`
 		CREATE TABLE IF NOT EXISTS shortener (
-		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-		    full_url varchar(2048) NOT NULL,
-		    short_url varchar(8) NOT NULL
+		    'id' uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+		    'full_url' VARCHAR(2048) NOT NULL,
+		    'short_url' VARCHAR(8) NOT NULL,
+		    'created_at' TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE INDEX IF NOT EXISTS shortener_short_url_index ON shortener (short_url);
 		`,

@@ -40,7 +40,7 @@ func (a *Application) Init() {
 	logger.Log.Info().Str("DATABASE_DSN", a.Configs.DatabaseDSN).Send()
 
 	// инициализация хранилища
-	store, err := storage.NewFileStorage(a.Configs.FileStoragePath)
+	store, err := a.initStorage()
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 	}
@@ -74,4 +74,18 @@ func (a *Application) Run(h http.Handler) {
 
 	<-idleConnsClosed
 	logger.Log.Info().Msg("Server closed.")
+}
+
+func (a *Application) initStorage() (storage.Storage, error) {
+	switch {
+	case a.Configs.DatabaseDSN != "":
+		s, err := storage.NewDBStorage(a.Configs.DatabaseDSN)
+		return s, err
+	case a.Configs.FileStoragePath != "":
+		s, err := storage.NewFileStorage(a.Configs.FileStoragePath)
+		return s, err
+	default:
+		s := storage.NewMemStorage()
+		return s, nil
+	}
 }

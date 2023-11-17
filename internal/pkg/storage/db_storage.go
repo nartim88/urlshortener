@@ -5,8 +5,6 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/pkg/config"
-
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 )
 
@@ -48,14 +46,14 @@ func (s *DBStorage) createTable() error {
 	_, err := s.conn.Exec(
 		context.Background(),
 		`
-		CREATE TABLE IF NOT EXISTS $1 (
+		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-		    $2 varchar(256),
-		    $3 varchar(8),
+		    full_url varchar(256),
+		    short_url varchar(8)
 		);
-		CREATE INDEX IF NOT EXISTS $4 ON $1 ($3);
+		CREATE INDEX IF NOT EXISTS shortener_short_url_index ON shortener (short_url);
 		`,
-		config.DBTableName, config.DBFullURLRow, config.DBShortURLRow, config.DBShortURLRow+"_short_url_index")
+	)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package shortener
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -42,7 +43,7 @@ func (a *Application) Init() {
 	// инициализация хранилища
 	store, err := a.initStorage()
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
+		logger.Log.Error().Stack().Err(err).Send()
 	}
 	a.Store = store
 }
@@ -69,21 +70,27 @@ func (a *Application) Run(h http.Handler) {
 	srv.Handler = h
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		logger.Log.Info().Stack().Err(err).Send()
+		logger.Log.Error().Stack().Err(err).Send()
 	}
 
 	<-idleConnsClosed
-	logger.Log.Info().Msg("Server closed.")
+	logger.Log.Info().Msg("Server is closed.")
 }
 
 func (a *Application) initStorage() (storage.Storage, error) {
 	switch {
 	case a.Configs.DatabaseDSN != "":
 		s, err := storage.NewDBStorage(a.Configs.DatabaseDSN)
-		return s, err
+		if err != nil {
+			return nil, fmt.Errorf("error while creating db storage: %w", err)
+		}
+		return s, nil
 	case a.Configs.FileStoragePath != "":
 		s, err := storage.NewFileStorage(a.Configs.FileStoragePath)
-		return s, err
+		if err != nil {
+			return nil, fmt.Errorf("error while creating file storage: %w", err)
+		}
+		return s, nil
 	default:
 		s := storage.NewMemStorage()
 		return s, nil

@@ -5,11 +5,14 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 )
 
 var Log = zerolog.Nop()
 
 func Init(level string) error {
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+
 	logger := zerolog.New(
 		zerolog.ConsoleWriter{
 			Out:        os.Stdout,

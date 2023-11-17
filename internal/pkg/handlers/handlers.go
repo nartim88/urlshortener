@@ -135,13 +135,13 @@ func DBPingHandle(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := pgx.Connect(context.Background(), shortener.App.Configs.DatabaseDSN)
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
+		logger.Log.Error().Stack().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer func() {
 		if err := conn.Close(context.Background()); err != nil {
-			logger.Log.Info().Err(err).Send()
+			logger.Log.Error().Stack().Err(err).Send()
 		}
 	}()
 	w.WriteHeader(http.StatusOK)

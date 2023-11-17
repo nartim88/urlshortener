@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/nartim88/urlshortener/internal/pkg/config"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
@@ -33,7 +34,7 @@ func (a *Application) Init() {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
-	logger.Log.Info().Msg("App configs:")
+	logger.Log.Info().Msg("app configs:")
 	logger.Log.Info().Str("SERVER_ADDRESS", a.Configs.RunAddr).Send()
 	logger.Log.Info().Str("BASE_URL", a.Configs.BaseURL).Send()
 	logger.Log.Info().Str("LOG_LEVEL", a.Configs.LogLevel).Send()
@@ -52,7 +53,7 @@ func (a *Application) Init() {
 func (a *Application) Run(h http.Handler) {
 	var srv http.Server
 
-	logger.Log.Info().Msgf("Running server on %s", a.Configs.RunAddr)
+	logger.Log.Info().Msgf("running server on %s", a.Configs.RunAddr)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
@@ -61,7 +62,7 @@ func (a *Application) Run(h http.Handler) {
 		<-sigint
 
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Log.Info().Stack().Err(err).Send()
+			logger.Log.Error().Stack().Err(err).Send()
 		}
 		close(idleConnsClosed)
 	}()
@@ -69,12 +70,24 @@ func (a *Application) Run(h http.Handler) {
 	srv.Addr = a.Configs.RunAddr
 	srv.Handler = h
 
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+	err := srv.ListenAndServe()
+
+	if errors.Is(err, http.ErrServerClosed) {
+		s, ok := a.Store.(storage.DBStorage)
+		if ok {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := s.Close(ctx); err != nil {
+				logger.Log.Error().Stack().Err(err).Msg("error while closing db connection")
+			}
+			logger.Log.Info().Msg("db connection is closed")
+		}
+	} else {
 		logger.Log.Error().Stack().Err(err).Send()
 	}
 
 	<-idleConnsClosed
-	logger.Log.Info().Msg("Server is closed.")
+	logger.Log.Info().Msg("server is closed")
 }
 
 func (a *Application) initStorage() (storage.Storage, error) {

@@ -8,18 +8,18 @@ import (
 )
 
 type MemStorage struct {
-	Memory map[models.ShortURL]models.FullURL
+	Memory map[models.ShortenID]models.FullURL
 }
 
 // NewMemStorage инициализация Storage в памяти
 func NewMemStorage() Storage {
 	s := MemStorage{
-		make(map[models.ShortURL]models.FullURL),
+		make(map[models.ShortenID]models.FullURL),
 	}
 	return &s
 }
 
-func (s *MemStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
+func (s *MemStorage) Get(sURL models.ShortenID) (*models.FullURL, error) {
 	if !s.isExist(sURL) {
 		return nil, nil
 	}
@@ -27,9 +27,9 @@ func (s *MemStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
 	return &fURL, nil
 }
 
-func (s *MemStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
+func (s *MemStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
-	shortURL := models.ShortURL(randChars)
+	shortURL := models.ShortenID(randChars)
 
 	if s.isExist(shortURL) {
 		return nil, errors.New("URL already exists")
@@ -39,7 +39,7 @@ func (s *MemStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 }
 
 // isExist проверяет сохранен ли в памяти короткий УРЛ
-func (s *MemStorage) isExist(sURL models.ShortURL) bool {
+func (s *MemStorage) isExist(sURL models.ShortenID) bool {
 	_, ok := s.Memory[sURL]
 	return ok
 }

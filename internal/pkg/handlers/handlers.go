@@ -63,7 +63,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 // GetURLHandle возвращает полный УРЛ по короткому
 func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	sURL := models.ShortURL(id)
+	sURL := models.ShortenID(id)
 	fURL, err := shortener.App.Store.Get(sURL)
 
 	if err != nil {

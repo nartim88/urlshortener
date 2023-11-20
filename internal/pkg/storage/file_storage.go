@@ -30,7 +30,7 @@ func NewFileStorage(path string) (Storage, error) {
 	return &s, nil
 }
 
-func (s *FileStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
+func (s *FileStorage) Get(sURL models.ShortenID) (*models.FullURL, error) {
 	entry, err := s.getByShortURL(sURL)
 	if err != nil {
 		return nil, err
@@ -41,9 +41,9 @@ func (s *FileStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
 	return &entry.FullURL, nil
 }
 
-func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
+func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
-	shortURL := models.ShortURL(randChars)
+	shortURL := models.ShortenID(randChars)
 
 	_, err := s.getByShortURL(shortURL)
 	if err != nil {
@@ -69,7 +69,7 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 }
 
 // getByShortURL возвращает полный урл по короткому
-func (s *FileStorage) getByShortURL(sURL models.ShortURL) (*models.FileJSONEntry, error) {
+func (s *FileStorage) getByShortURL(sURL models.ShortenID) (*models.FileJSONEntry, error) {
 	var entry models.FileJSONEntry
 
 	scanner, err := s.newScanner()

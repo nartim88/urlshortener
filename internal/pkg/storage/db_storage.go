@@ -26,7 +26,7 @@ func NewDBStorage(dsn string) (Storage, error) {
 	return s, nil
 }
 
-func (s DBStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
+func (s DBStorage) Get(sURL models.ShortenID) (*models.FullURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -41,12 +41,12 @@ func (s DBStorage) Get(sURL models.ShortURL) (*models.FullURL, error) {
 	return &fURL, nil
 }
 
-func (s DBStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
+func (s DBStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	randChars := service.GenerateRandChars(shortURLLen)
-	sURL := models.ShortURL(randChars)
+	sURL := models.ShortenID(randChars)
 
 	_, err := s.conn.Exec(ctx, "INSERT INTO shortener (full_url, short_url) VALUES ($1, $2);", fURL, sURL)
 	if err != nil {

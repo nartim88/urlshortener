@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/service"
@@ -56,7 +55,7 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 		return nil, err
 	}
 
-	newEntry := models.JSONEntry{
+	newEntry := models.FileJSONEntry{
 		ID:       &newUUID,
 		ShortURL: shortURL,
 		FullURL:  fURL,
@@ -70,8 +69,8 @@ func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortURL, error) {
 }
 
 // getByShortURL возвращает полный урл по короткому
-func (s *FileStorage) getByShortURL(sURL models.ShortURL) (*models.JSONEntry, error) {
-	var entry models.JSONEntry
+func (s *FileStorage) getByShortURL(sURL models.ShortURL) (*models.FileJSONEntry, error) {
+	var entry models.FileJSONEntry
 
 	scanner, err := s.newScanner()
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *FileStorage) newScanner() (*bufio.Scanner, error) {
 	return bufio.NewScanner(buf), nil
 }
 
-func (s *FileStorage) saveToFile(entry models.JSONEntry) error {
+func (s *FileStorage) saveToFile(entry models.FileJSONEntry) error {
 	file, err := os.OpenFile(s.FilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, s.FilePerm)
 	if err != nil {
 		return err

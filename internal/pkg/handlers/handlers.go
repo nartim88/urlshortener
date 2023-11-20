@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
+	"github.com/nartim88/urlshortener/internal/pkg/models/api/v1"
 )
 
 const (
@@ -83,7 +83,7 @@ func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
-	var req models.Request
+	var req v1.Request
 	var buf bytes.Buffer
 
 	_, err := buf.ReadFrom(r.Body)
@@ -109,8 +109,8 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := shortener.App.Configs.BaseURL + "/" + string(*sURL)
-	resp := models.Response{
-		Response: models.ResponsePayload{
+	resp := v1.Response{
+		Response: v1.ResponsePayload{
 			Result: res,
 		},
 	}

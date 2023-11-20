@@ -19,11 +19,11 @@ func NewMemStorage() Storage {
 	return &s
 }
 
-func (s *MemStorage) Get(sURL models.ShortenID) (*models.FullURL, error) {
-	if !s.isExist(sURL) {
+func (s *MemStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
+	if !s.isExist(sID) {
 		return nil, nil
 	}
-	fURL := s.Memory[sURL]
+	fURL := s.Memory[sID]
 	return &fURL, nil
 }
 
@@ -39,7 +39,7 @@ func (s *MemStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 }
 
 // isExist проверяет сохранен ли в памяти короткий УРЛ
-func (s *MemStorage) isExist(sURL models.ShortenID) bool {
-	_, ok := s.Memory[sURL]
+func (s *MemStorage) isExist(sID models.ShortenID) bool {
+	_, ok := s.Memory[sID]
 	return ok
 }

@@ -13,7 +13,7 @@ type (
 
 // FileJSONEntry структура для записи данных в файл в json формате
 type FileJSONEntry struct {
-	ID       *uuid.UUID `json:"id"`
-	ShortURL ShortenID  `json:"short_url"`
-	FullURL  FullURL    `json:"full_url"`
+	ID        *uuid.UUID `json:"id"`
+	ShortenID ShortenID  `json:"shorten_id"`
+	FullURL   FullURL    `json:"full_url"`
 }

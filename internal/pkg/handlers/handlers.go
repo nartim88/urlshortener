@@ -41,7 +41,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fURL := models.FullURL(body)
-	sURL, err := shortener.App.Store.Set(fURL)
+	sID, err := shortener.App.Store.Set(fURL)
 
 	if err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
@@ -49,11 +49,11 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := shortener.App.Configs.BaseURL + "/" + string(*sURL)
+	shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
 
 	w.Header().Set(contentType, textPlain)
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(result))
+	_, err = w.Write([]byte(shortURL))
 
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
@@ -63,8 +63,8 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 // GetURLHandle возвращает полный УРЛ по короткому
 func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	sURL := models.ShortenID(id)
-	fURL, err := shortener.App.Store.Get(sURL)
+	sID := models.ShortenID(id)
+	fURL, err := shortener.App.Store.Get(sID)
 
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
@@ -99,19 +99,19 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	logger.Log.Info().Str("full_url", string(req.FullURL)).Msg("incoming request data:")
+	logger.Log.Info().Str("original_url", string(req.FullURL)).Msg("incoming request data:")
 
-	sURL, err := shortener.App.Store.Set(req.FullURL)
+	sID, err := shortener.App.Store.Set(req.FullURL)
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	res := shortener.App.Configs.BaseURL + "/" + string(*sURL)
+	shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
 	resp := v1.Response{
 		Response: v1.ResponsePayload{
-			Result: res,
+			Result: shortURL,
 		},
 	}
 

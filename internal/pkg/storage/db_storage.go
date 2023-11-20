@@ -26,12 +26,12 @@ func NewDBStorage(dsn string) (Storage, error) {
 	return s, nil
 }
 
-func (s DBStorage) Get(sURL models.ShortenID) (*models.FullURL, error) {
+func (s DBStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	var fURL models.FullURL
-	err := s.conn.QueryRow(ctx, "SELECT full_url FROM shortener WHERE short_url=$1", sURL).Scan(&fURL)
+	err := s.conn.QueryRow(ctx, "SELECT full_url FROM shortener WHERE short_url=$1", sID).Scan(&fURL)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -46,13 +46,13 @@ func (s DBStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 	defer cancel()
 
 	randChars := service.GenerateRandChars(shortURLLen)
-	sURL := models.ShortenID(randChars)
+	sID := models.ShortenID(randChars)
 
-	_, err := s.conn.Exec(ctx, "INSERT INTO shortener (full_url, short_url) VALUES ($1, $2);", fURL, sURL)
+	_, err := s.conn.Exec(ctx, "INSERT INTO shortener (full_url, short_url) VALUES ($1, $2);", fURL, sID)
 	if err != nil {
 		return nil, err
 	}
-	return &sURL, nil
+	return &sID, nil
 }
 
 func (s DBStorage) Close(ctx context.Context) error {

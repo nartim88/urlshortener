@@ -13,5 +13,5 @@ type Response struct {
 
 type ResponsePayload struct {
 	CorrelationID models.CorrelationID `json:"correlation_id"`
-	Result        string               `json:"short_url"`
+	ShortURL      string               `json:"short_url"`
 }

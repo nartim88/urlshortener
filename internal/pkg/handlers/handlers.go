@@ -14,6 +14,7 @@ import (
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/models/api/v1"
+	v2 "github.com/nartim88/urlshortener/internal/pkg/models/api/v2"
 )
 
 const (
@@ -144,9 +145,59 @@ func DBPingHandle(w http.ResponseWriter, r *http.Request) {
 			logger.Log.Error().Stack().Err(err).Send()
 		}
 	}()
+
+	logger.Log.Info().Msg("ping successfully processed")
 	w.WriteHeader(http.StatusOK)
 }
 
 func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
+	var req v2.Request
+	var buf bytes.Buffer
 
+	_, err := buf.ReadFrom(r.Body)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("error while reading from request body")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err = json.Unmarshal(buf.Bytes(), &req.Data); err != nil {
+		logger.Log.Error().Err(err).Msg("error while deserializing json")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	logger.Log.Info().Msgf("got batch: %+v", req)
+
+	var respPayload []v2.ResponsePayload
+
+	for _, rData := range req.Data {
+		sID, err := shortener.App.Store.Set(rData.FullURL)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("error while saving data to db")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
+		respPayload = append(respPayload, v2.ResponsePayload{
+			CorrelationID: rData.CorrelationID,
+			ShortURL:      shortURL,
+		})
+	}
+
+	resp := v2.Response{Response: respPayload}
+
+	respDecoded, err := json.Marshal(resp.Response)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("error while serializing response")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set(contentType, applicationJSON)
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(respDecoded)
+	if err != nil {
+		logger.Log.Info().Err(err).Msg("error while sending response")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

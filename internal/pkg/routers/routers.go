@@ -43,7 +43,12 @@ func apiRouter() http.Handler {
 	r := chi.NewRouter()
 
 	r.Route("/", func(r chi.Router) {
-		r.Post("/shorten", handlers.GetShortURLHandle)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", handlers.GetShortURLHandle)
+			r.Route("/batch", func(r chi.Router) {
+				r.Post("/", handlers.GetBatchShortURLsHandle)
+			})
+		})
 	})
 
 	return r

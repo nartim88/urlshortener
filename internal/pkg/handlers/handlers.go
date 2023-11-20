@@ -146,3 +146,7 @@ func DBPingHandle(w http.ResponseWriter, r *http.Request) {
 	}()
 	w.WriteHeader(http.StatusOK)
 }
+
+func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
+
+}

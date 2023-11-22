@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/handlers"
 	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
 	"github.com/go-resty/resty/v2"
@@ -85,8 +84,7 @@ func TestMainRouter(t *testing.T) {
 }
 
 func TestAPI(t *testing.T) {
-	handler := http.HandlerFunc(handlers.GetShortURLHandle)
-	srv := httptest.NewServer(handler)
+	srv := httptest.NewServer(routers.MainRouter())
 	defer srv.Close()
 
 	type want struct {
@@ -102,10 +100,30 @@ func TestAPI(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "method_post",
+			name:   "/api/shorten_POST",
 			path:   "/api/shorten",
 			method: http.MethodPost,
 			body:   `{"url": "https://ya.ru"}`,
+			want: want{
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+			},
+		},
+		{
+			name:   "/api/shorten/batch_POST",
+			path:   "/api/shorten/batch",
+			method: http.MethodPost,
+			body: `
+				[
+					{
+						"correlation_id": "salt1",
+						"original_url": "https://ya.ru"
+					},
+					{
+						"correlation_id": "salt2",
+						"original_url": "https://google.ru"
+					}
+				]`,
 			want: want{
 				contentType: "application/json",
 				statusCode:  http.StatusCreated,

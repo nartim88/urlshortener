@@ -72,18 +72,18 @@ func (a *Application) Run(h http.Handler) {
 
 	err := srv.ListenAndServe()
 
-	if errors.Is(err, http.ErrServerClosed) {
-		s, ok := a.Store.(storage.DBStorage)
-		if ok {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			if err := s.Close(ctx); err != nil {
-				logger.Log.Error().Stack().Err(err).Msg("error while closing db connection")
-			}
-			logger.Log.Info().Msg("db connection is closed")
-		}
-	} else {
+	if !errors.Is(err, http.ErrServerClosed) {
 		logger.Log.Error().Stack().Err(err).Send()
+	}
+
+	s, ok := a.Store.(storage.DBStorage)
+	if ok {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := s.Close(ctx); err != nil {
+			logger.Log.Error().Stack().Err(err).Msg("error while closing db connection")
+		}
+		logger.Log.Info().Msg("db connection is closed")
 	}
 
 	<-idleConnsClosed

@@ -56,13 +56,13 @@ func (s DBStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 }
 
 func (s DBStorage) Close(ctx context.Context) error {
-	if s.conn != nil {
-		if err := s.conn.Close(ctx); err != nil {
-			return err
-		}
-		return nil
+	if s.conn == nil {
+		return errors.New("db connection doesn't exists or already closed")
 	}
-	return errors.New("db connection doesn't exists or already closed")
+	if err := s.conn.Close(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // createTable создание таблицы в бд

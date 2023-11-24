@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -20,10 +21,10 @@ func NewDBStorage(dsn string) (Storage, error) {
 		return nil, err
 	}
 	s := DBStorage{conn}
-	if err = s.createTable(); err != nil {
+	if err = s.bootstrap(); err != nil {
 		return nil, err
 	}
-	return s, nil
+	return &s, nil
 }
 
 func (s DBStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
@@ -31,7 +32,12 @@ func (s DBStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
 	defer cancel()
 
 	var fURL models.FullURL
-	err := s.conn.QueryRow(ctx, "SELECT full_url FROM shortener WHERE short_url=$1", sID).Scan(&fURL)
+	err := s.conn.QueryRow(ctx, `
+		SELECT full_url 
+		FROM shortener 
+		WHERE short_url=$1`,
+		sID,
+	).Scan(&fURL)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -46,13 +52,29 @@ func (s DBStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
 	defer cancel()
 
 	randChars := service.GenerateRandChars(shortURLLen)
-	sID := models.ShortenID(randChars)
+	newSID := models.ShortenID(randChars)
+	var resSID models.ShortenID
 
-	_, err := s.conn.Exec(ctx, "INSERT INTO shortener (full_url, short_url) VALUES ($1, $2);", fURL, sID)
+	err := s.conn.QueryRow(ctx, `
+		INSERT INTO shortener (full_url, short_url)
+		VALUES ($1, $2)
+		ON CONFLICT (full_url) DO UPDATE
+			SET full_url = EXCLUDED.full_url
+		RETURNING short_url;
+		`,
+		fURL, newSID,
+	).Scan(&resSID)
 	if err != nil {
+		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
+	}
+	if newSID != resSID {
+		err = URLExistsError{
+			fURL,
+			resSID,
+		}
 		return nil, err
 	}
-	return &sID, nil
+	return &newSID, nil
 }
 
 func (s DBStorage) Close(ctx context.Context) error {
@@ -65,16 +87,17 @@ func (s DBStorage) Close(ctx context.Context) error {
 	return nil
 }
 
-// createTable создание таблицы в бд
-func (s DBStorage) createTable() (err error) {
+// bootstrap создание необходимых таблиц и индексов в бд
+func (s DBStorage) bootstrap() (err error) {
 	_, err = s.conn.Exec(context.Background(), `
 		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-		    full_url VARCHAR(2048) NOT NULL,
-		    short_url VARCHAR(8) NOT NULL,
-		    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),
+		    short_url VARCHAR(8) NOT NULL CHECK (short_url <> ''),
+		    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 		);
-		CREATE INDEX IF NOT EXISTS shortener_short_url_index ON shortener (short_url);
+		CREATE INDEX IF NOT EXISTS shortener_short_url_idx ON shortener (short_url);
+		CREATE UNIQUE INDEX IF NOT EXISTS shortener_full_url_unique_idx ON shortener (full_url)
 		`,
 	)
 	return

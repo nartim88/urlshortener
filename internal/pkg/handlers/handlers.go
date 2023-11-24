@@ -15,6 +15,7 @@ import (
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/models/api/v1"
 	v2 "github.com/nartim88/urlshortener/internal/pkg/models/api/v2"
+	"github.com/nartim88/urlshortener/internal/pkg/storage"
 )
 
 const (
@@ -43,17 +44,24 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 
 	fURL := models.FullURL(body)
 	sID, err := shortener.App.Store.Set(fURL)
-
+	sCode := http.StatusCreated
 	if err != nil {
-		logger.Log.Info().Stack().Err(err).Send()
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		var existsErr storage.URLExistsError
+		if errors.As(err, &existsErr) {
+			logger.Log.Info().Msgf("%v", existsErr)
+			sID = &existsErr.SID
+			sCode = http.StatusConflict
+		} else {
+			logger.Log.Info().Err(err).Send()
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
 
 	w.Header().Set(contentType, textPlain)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(sCode)
 	_, err = w.Write([]byte(shortURL))
 
 	if err != nil {
@@ -102,11 +110,19 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Log.Info().Str("original_url", string(req.FullURL)).Msg("incoming request data:")
 
+	sCode := http.StatusCreated
 	sID, err := shortener.App.Store.Set(req.FullURL)
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		var existsErr storage.URLExistsError
+		if errors.As(err, &existsErr) {
+			logger.Log.Info().Msgf("%v", existsErr)
+			sID = &existsErr.SID
+			sCode = http.StatusConflict
+		} else {
+			logger.Log.Info().Err(err).Send()
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
@@ -119,12 +135,12 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	respDecoded, err := json.Marshal(resp.Response)
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set(contentType, applicationJSON)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(sCode)
 	_, err = w.Write(respDecoded)
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
@@ -170,12 +186,20 @@ func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
 
 	var respPayload []v2.ResponsePayload
 
+	sCode := http.StatusCreated
 	for _, rData := range req.Data {
 		sID, err := shortener.App.Store.Set(rData.FullURL)
 		if err != nil {
-			logger.Log.Error().Err(err).Msg("error while saving data to db")
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			var existsErr storage.URLExistsError
+			if errors.As(err, &existsErr) {
+				logger.Log.Info().Msgf("%v", existsErr)
+				sID = &existsErr.SID
+				sCode = http.StatusConflict
+			} else {
+				logger.Log.Info().Err(err).Send()
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 		}
 		shortURL := shortener.App.Configs.BaseURL + "/" + string(*sID)
 		respPayload = append(respPayload, v2.ResponsePayload{
@@ -194,7 +218,7 @@ func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set(contentType, applicationJSON)
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(sCode)
 	_, err = w.Write(respDecoded)
 	if err != nil {
 		logger.Log.Info().Err(err).Msg("error while sending response")

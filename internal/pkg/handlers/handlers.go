@@ -103,7 +103,7 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), &req); err != nil {
+	if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
 		logger.Log.Info().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

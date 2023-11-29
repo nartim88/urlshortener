@@ -6,10 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/handlers"
 	"github.com/nartim88/urlshortener/internal/pkg/routers"
 
 	"github.com/go-resty/resty/v2"
@@ -42,7 +42,7 @@ func TestMainRouter(t *testing.T) {
 
 	type want struct {
 		contentType string
-		statusCode  int
+		statusCodes []string
 	}
 
 	var testCases = []struct {
@@ -59,7 +59,7 @@ func TestMainRouter(t *testing.T) {
 			body:   "https://ya.ru",
 			want: want{
 				contentType: "text/plain",
-				statusCode:  http.StatusCreated,
+				statusCodes: []string{"201", "409"},
 			},
 		},
 		{
@@ -67,7 +67,7 @@ func TestMainRouter(t *testing.T) {
 			url:    "/HMOUQTFX",
 			method: http.MethodGet,
 			want: want{
-				statusCode: http.StatusNotFound,
+				statusCodes: []string{"404"},
 			},
 		},
 	}
@@ -78,20 +78,19 @@ func TestMainRouter(t *testing.T) {
 			resp, _ := testRequest(t, ts, tc.method, tc.url, buf)
 			defer resp.Body.Close()
 
-			assert.Equal(t, tc.want.statusCode, resp.StatusCode)
+			assert.Contains(t, tc.want.statusCodes, strconv.Itoa(resp.StatusCode))
 			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
 		})
 	}
 }
 
 func TestAPI(t *testing.T) {
-	handler := http.HandlerFunc(handlers.JSONGetShortURLHandle)
-	srv := httptest.NewServer(handler)
+	srv := httptest.NewServer(routers.MainRouter())
 	defer srv.Close()
 
 	type want struct {
 		contentType string
-		statusCode  int
+		statusCodes []string
 	}
 
 	var testCases = []struct {
@@ -102,13 +101,33 @@ func TestAPI(t *testing.T) {
 		want   want
 	}{
 		{
-			name:   "method_post",
+			name:   "/api/shorten_POST",
 			path:   "/api/shorten",
 			method: http.MethodPost,
 			body:   `{"url": "https://ya.ru"}`,
 			want: want{
 				contentType: "application/json",
-				statusCode:  http.StatusCreated,
+				statusCodes: []string{"201", "409"},
+			},
+		},
+		{
+			name:   "/api/shorten/batch_POST",
+			path:   "/api/shorten/batch",
+			method: http.MethodPost,
+			body: `
+				[
+					{
+						"correlation_id": "salt1",
+						"original_url": "https://ya.ru"
+					},
+					{
+						"correlation_id": "salt2",
+						"original_url": "https://google.ru"
+					}
+				]`,
+			want: want{
+				contentType: "application/json",
+				statusCodes: []string{"201", "409"},
 			},
 		},
 	}
@@ -125,7 +144,7 @@ func TestAPI(t *testing.T) {
 			resp, err := req.Send()
 
 			assert.NoError(t, err)
-			assert.Equal(t, tc.want.statusCode, resp.StatusCode())
+			assert.Contains(t, tc.want.statusCodes, strconv.Itoa(resp.StatusCode()))
 			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
 		})
 	}
@@ -153,7 +172,7 @@ func TestGzipCompression(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		require.Contains(t, []string{"201", "409"}, strconv.Itoa(resp.StatusCode))
 
 		defer resp.Body.Close()
 
@@ -173,7 +192,7 @@ func TestGzipCompression(t *testing.T) {
 		resp, err := req.Send()
 
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode())
+		require.Contains(t, []string{"201", "409"}, strconv.Itoa(resp.StatusCode()))
 
 		zr, err := gzip.NewReader(resp.RawBody())
 		defer resp.RawBody().Close()

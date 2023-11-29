@@ -3,11 +3,14 @@ package shortener
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/nartim88/urlshortener/internal/pkg/config"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
@@ -32,10 +35,17 @@ func (a *Application) Init() {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
+	logger.Log.Info().Msg("app configs:")
+	logger.Log.Info().Str("SERVER_ADDRESS", a.Configs.RunAddr).Send()
+	logger.Log.Info().Str("BASE_URL", a.Configs.BaseURL).Send()
+	logger.Log.Info().Str("LOG_LEVEL", a.Configs.LogLevel).Send()
+	logger.Log.Info().Str("FILE_STORAGE_PATH", a.Configs.FileStoragePath).Send()
+	logger.Log.Info().Str("DATABASE_DSN", a.Configs.DatabaseDSN).Send()
+
 	// инициализация хранилища
-	store, err := storage.NewStorage(a.Configs.FileStoragePath)
+	store, err := a.initStorage()
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
+		logger.Log.Error().Stack().Err(err).Send()
 	}
 	a.Store = store
 }
@@ -44,7 +54,7 @@ func (a *Application) Init() {
 func (a *Application) Run(h http.Handler) {
 	var srv http.Server
 
-	logger.Log.Info().Msgf("Running server on %s", a.Configs.RunAddr)
+	logger.Log.Info().Msgf("running server on %s", a.Configs.RunAddr)
 
 	idleConnsClosed := make(chan struct{})
 	go func() {
@@ -53,7 +63,7 @@ func (a *Application) Run(h http.Handler) {
 		<-sigint
 
 		if err := srv.Shutdown(context.Background()); err != nil {
-			logger.Log.Info().Stack().Err(err).Send()
+			logger.Log.Error().Stack().Err(err).Send()
 		}
 		close(idleConnsClosed)
 	}()
@@ -61,10 +71,54 @@ func (a *Application) Run(h http.Handler) {
 	srv.Addr = a.Configs.RunAddr
 	srv.Handler = h
 
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		logger.Log.Info().Stack().Err(err).Send()
+	err := srv.ListenAndServe()
+
+	if !errors.Is(err, http.ErrServerClosed) {
+		logger.Log.Error().Stack().Err(err).Send()
+	}
+
+	s, ok := a.Store.(storage.StorageWithService)
+	if ok {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := s.Close(ctx); err != nil {
+			logger.Log.Error().Stack().Err(err).Msg("error while closing db connection")
+		}
+		logger.Log.Info().Msg("db connection is closed")
 	}
 
 	<-idleConnsClosed
-	logger.Log.Info().Msg("Server closed.")
+	logger.Log.Info().Msg("server is closed")
+}
+
+func (a *Application) initStorage() (storage.Storage, error) {
+	switch {
+	case a.Configs.DatabaseDSN != "":
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		conn, err := pgx.Connect(ctx, a.Configs.DatabaseDSN)
+		if err != nil {
+			return nil, fmt.Errorf("error while connecting to db: %w", err)
+		}
+
+		s := storage.NewDBStorage(conn)
+
+		if err = s.Bootstrap(ctx); err != nil {
+			return nil, fmt.Errorf("error while creating tables in db: %w", err)
+		}
+
+		return s, nil
+
+	case a.Configs.FileStoragePath != "":
+		s, err := storage.NewFileStorage(a.Configs.FileStoragePath)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating file storage: %w", err)
+		}
+		return s, nil
+
+	default:
+		s := storage.NewMemStorage()
+		return s, nil
+	}
 }

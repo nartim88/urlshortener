@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/nartim88/urlshortener/internal/pkg/config"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
@@ -76,7 +77,7 @@ func (a *Application) Run(h http.Handler) {
 		logger.Log.Error().Stack().Err(err).Send()
 	}
 
-	s, ok := a.Store.(storage.DBStorage)
+	s, ok := a.Store.(storage.StorageWithService)
 	if ok {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -93,17 +94,29 @@ func (a *Application) Run(h http.Handler) {
 func (a *Application) initStorage() (storage.Storage, error) {
 	switch {
 	case a.Configs.DatabaseDSN != "":
-		s, err := storage.NewDBStorage(a.Configs.DatabaseDSN)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		conn, err := pgx.Connect(ctx, a.Configs.DatabaseDSN)
 		if err != nil {
-			return nil, fmt.Errorf("error while creating db storage: %w", err)
+			return nil, fmt.Errorf("error while connecting to db: %w", err)
 		}
+
+		s := storage.NewDBStorage(conn)
+
+		if err = s.Bootstrap(ctx); err != nil {
+			return nil, fmt.Errorf("error while creating tables in db: %w", err)
+		}
+
 		return s, nil
+
 	case a.Configs.FileStoragePath != "":
 		s, err := storage.NewFileStorage(a.Configs.FileStoragePath)
 		if err != nil {
 			return nil, fmt.Errorf("error while creating file storage: %w", err)
 		}
 		return s, nil
+
 	default:
 		s := storage.NewMemStorage()
 		return s, nil

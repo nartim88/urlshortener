@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 
 	"github.com/nartim88/urlshortener/internal/pkg/models"
@@ -19,7 +20,7 @@ func NewMemStorage() Storage {
 	return &s
 }
 
-func (s *MemStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
+func (s *MemStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error) {
 	if !s.isExist(sID) {
 		return nil, nil
 	}
@@ -27,7 +28,7 @@ func (s *MemStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
 	return &fURL, nil
 }
 
-func (s *MemStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
+func (s *MemStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
 	shortURL := models.ShortenID(randChars)
 

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -43,7 +44,11 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fURL := models.FullURL(body)
-	sID, err := shortener.App.Store.Set(fURL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	sID, err := shortener.App.Store.Set(ctx, fURL)
 	sCode := http.StatusCreated
 	if err != nil {
 		var existsErr storage.URLExistsError
@@ -73,7 +78,11 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sID := models.ShortenID(id)
-	fURL, err := shortener.App.Store.Get(sID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	fURL, err := shortener.App.Store.Get(ctx, sID)
 
 	if err != nil {
 		logger.Log.Info().Err(err).Send()
@@ -111,7 +120,11 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Info().Str("original_url", string(req.FullURL)).Msg("incoming request data:")
 
 	sCode := http.StatusCreated
-	sID, err := shortener.App.Store.Set(req.FullURL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	sID, err := shortener.App.Store.Set(ctx, req.FullURL)
 	if err != nil {
 		var existsErr storage.URLExistsError
 		if errors.As(err, &existsErr) {
@@ -150,14 +163,17 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 func DBPingHandle(w http.ResponseWriter, r *http.Request) {
 	logger.Log.Info().Str("DATABASE_DSN", shortener.App.Configs.DatabaseDSN).Msg("trying to ping DB via")
 
-	conn, err := pgx.Connect(context.Background(), shortener.App.Configs.DatabaseDSN)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := pgx.Connect(ctx, shortener.App.Configs.DatabaseDSN)
 	if err != nil {
 		logger.Log.Error().Stack().Err(err).Send()
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer func() {
-		if err := conn.Close(context.Background()); err != nil {
+		if err := conn.Close(ctx); err != nil {
 			logger.Log.Error().Stack().Err(err).Send()
 		}
 	}()
@@ -187,8 +203,12 @@ func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
 	var respPayload []v2.ResponsePayload
 
 	sCode := http.StatusCreated
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	for _, rData := range req.Data {
-		sID, err := shortener.App.Store.Set(rData.FullURL)
+		sID, err := shortener.App.Store.Set(ctx, rData.FullURL)
 		if err != nil {
 			var existsErr storage.URLExistsError
 			if errors.As(err, &existsErr) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
@@ -15,22 +14,11 @@ type DBStorage struct {
 	conn *pgx.Conn
 }
 
-func NewDBStorage(dsn string) (Storage, error) {
-	conn, err := pgx.Connect(context.Background(), dsn)
-	if err != nil {
-		return nil, err
-	}
-	s := DBStorage{conn}
-	if err = s.bootstrap(); err != nil {
-		return nil, err
-	}
-	return &s, nil
+func NewDBStorage(conn *pgx.Conn) StorageWithService {
+	return &DBStorage{conn}
 }
 
-func (s DBStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
+func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error) {
 	var fURL models.FullURL
 	err := s.conn.QueryRow(ctx, `
 		SELECT full_url 
@@ -47,10 +35,7 @@ func (s DBStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
 	return &fURL, nil
 }
 
-func (s DBStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
+func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
 	newSID := models.ShortenID(randChars)
 	var resSID models.ShortenID
@@ -87,9 +72,8 @@ func (s DBStorage) Close(ctx context.Context) error {
 	return nil
 }
 
-// bootstrap создание необходимых таблиц и индексов в бд
-func (s DBStorage) bootstrap() (err error) {
-	_, err = s.conn.Exec(context.Background(), `
+func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
+	_, err = s.conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
 		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),

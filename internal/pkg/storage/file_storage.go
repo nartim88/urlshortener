@@ -3,6 +3,7 @@ package storage
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 
@@ -30,7 +31,7 @@ func NewFileStorage(path string) (Storage, error) {
 	return &s, nil
 }
 
-func (s *FileStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
+func (s *FileStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error) {
 	entry, err := s.getByShortURL(sID)
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func (s *FileStorage) Get(sID models.ShortenID) (*models.FullURL, error) {
 	return &entry.FullURL, nil
 }
 
-func (s *FileStorage) Set(fURL models.FullURL) (*models.ShortenID, error) {
+func (s *FileStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
 	randChars := service.GenerateRandChars(shortURLLen)
 	sID := models.ShortenID(randChars)
 

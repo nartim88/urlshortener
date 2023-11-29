@@ -4,10 +4,16 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
 
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
+}
 
 type Config struct {
 	RunAddr         string `env:"SERVER_ADDRESS"`
@@ -15,6 +21,7 @@ type Config struct {
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	SecretKey       string `env:"SECRET_KEY"`
 }
 
 // NewConfig инициализирует Config с дефолтными значениями

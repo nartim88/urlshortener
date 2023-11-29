@@ -35,12 +35,19 @@ func (a *Application) Init() {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
-	logger.Log.Info().Msg("app configs:")
-	logger.Log.Info().Str("SERVER_ADDRESS", a.Configs.RunAddr).Send()
-	logger.Log.Info().Str("BASE_URL", a.Configs.BaseURL).Send()
-	logger.Log.Info().Str("LOG_LEVEL", a.Configs.LogLevel).Send()
-	logger.Log.Info().Str("FILE_STORAGE_PATH", a.Configs.FileStoragePath).Send()
-	logger.Log.Info().Str("DATABASE_DSN", a.Configs.DatabaseDSN).Send()
+	logger.Log.Info().
+		Str("SERVER_ADDRESS", a.Configs.RunAddr).
+		Str("BASE_URL", a.Configs.BaseURL).
+		Str("LOG_LEVEL", a.Configs.LogLevel).
+		Str("FILE_STORAGE_PATH", a.Configs.FileStoragePath).
+		Str("DATABASE_DSN", a.Configs.DatabaseDSN).
+		Str("SECRET_KEY", func() string {
+			if a.Configs.SecretKey != "" {
+				return "true"
+			}
+			return "false"
+		}()).
+		Msg("app configs:")
 
 	// инициализация хранилища
 	store, err := a.initStorage()

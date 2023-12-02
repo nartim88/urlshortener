@@ -14,6 +14,7 @@ func MainRouter() http.Handler {
 
 	r.Use(middleware.WithLogging)
 	r.Use(middleware.GZipMiddleware)
+	r.Use(middleware.AuthMiddleware)
 
 	r.Route("/", func(r chi.Router) {
 		r.Mount("/", textRespRouter())
@@ -61,7 +62,6 @@ func apiRouter() http.Handler {
 
 func userRouter() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.AuthMiddleware)
 	r.Route("/", func(r chi.Router) {
 		r.Route("/urls", func(r chi.Router) {
 			r.Get("/", handlers.GetAllUserURLs)

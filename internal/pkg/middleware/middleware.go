@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -70,12 +71,14 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		} else {
 			claims := &config.Claims{}
 			tokenString := cookie.Value
-			_, err := service.GetUserId(tokenString, shortener.App.Configs.SecretKey, claims)
+			UserID, err := service.GetUserId(tokenString, shortener.App.Configs.SecretKey, claims)
 			if err != nil {
 				logger.Log.Error().Err(err).Send()
 				http.Error(rw, err.Error(), http.StatusUnauthorized)
 				return
 			}
+			ctx := context.WithValue(r.Context(), "userID", UserID)
+			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(rw, r)
 	}

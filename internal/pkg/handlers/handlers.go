@@ -45,7 +45,7 @@ func IndexHandle(w http.ResponseWriter, r *http.Request) {
 
 	fURL := models.FullURL(body)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	sID, err := shortener.App.Store.Set(ctx, fURL)
@@ -79,7 +79,7 @@ func GetURLHandle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sID := models.ShortenID(id)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	fURL, err := shortener.App.Store.Get(ctx, sID)
@@ -121,7 +121,7 @@ func GetShortURLHandle(w http.ResponseWriter, r *http.Request) {
 
 	sCode := http.StatusCreated
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	sID, err := shortener.App.Store.Set(ctx, req.FullURL)
@@ -204,7 +204,7 @@ func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
 
 	sCode := http.StatusCreated
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	for _, rData := range req.Data {

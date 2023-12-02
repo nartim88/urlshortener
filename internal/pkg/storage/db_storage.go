@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
@@ -40,14 +41,19 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 	newSID := models.ShortenID(randChars)
 	var resSID models.ShortenID
 
-	err := s.conn.QueryRow(ctx, `
-		INSERT INTO shortener (full_url, short_url)
-		VALUES ($1, $2)
+	userID, err := getUserIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.conn.QueryRow(ctx, `
+		INSERT INTO shortener (user_id, full_url, short_url)
+		VALUES ($1, $2, $3)
 		ON CONFLICT (full_url) DO UPDATE
 			SET full_url = EXCLUDED.full_url
 		RETURNING short_url;
 		`,
-		fURL, newSID,
+		userID, fURL, newSID,
 	).Scan(&resSID)
 	if err != nil {
 		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
@@ -76,6 +82,7 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 	_, err = s.conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+		    user_id uuid,
 		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),
 		    short_url VARCHAR(8) NOT NULL CHECK (short_url <> ''),
 		    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -85,4 +92,18 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 		`,
 	)
 	return
+}
+
+func getUserIDFromCtx(ctx context.Context) (string, error) {
+	ctxKey := "userID"
+	userID := ctx.Value(ctxKey)
+	if userID == nil {
+		return "", errors.New("user id is not found in context")
+	}
+	val, ok := userID.(string)
+	if !ok {
+		return "", errors.New("user id value must be string")
+	}
+	logger.Log.Info().Str(ctxKey, val).Send()
+	return val, nil
 }

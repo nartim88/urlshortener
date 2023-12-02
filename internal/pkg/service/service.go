@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -36,7 +37,7 @@ func BuildJWTString(claims jwt.Claims, key string) (string, error) {
 
 // GetUserId возвращает ID пользователя из токена
 func GetUserId(tokenString string, key string, claims *config.Claims) (string, error) {
-	token, err := jwt.ParseWithClaims(tokenString, *claims,
+	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -51,6 +52,9 @@ func GetUserId(tokenString string, key string, claims *config.Claims) (string, e
 		return "", fmt.Errorf("token is not valid")
 	}
 
+	if claims.UserID == "" {
+		return "", errors.New("user id is absent in the jwt")
+	}
 	return claims.UserID, nil
 }
 

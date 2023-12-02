@@ -10,16 +10,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/config"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
 	"github.com/nartim88/urlshortener/internal/pkg/models"
 	v1 "github.com/nartim88/urlshortener/internal/pkg/models/api/v1"
 	v2 "github.com/nartim88/urlshortener/internal/pkg/models/api/v2"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
 	"github.com/nartim88/urlshortener/internal/pkg/storage"
 )
 
@@ -251,32 +247,6 @@ func GetBatchShortURLsHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllUserURLs(w http.ResponseWriter, r *http.Request) {
-	var tokenString string
-
-	cookie, err := r.Cookie("token")
-
-	if err != nil {
-		logger.Log.Info().Msg("no cookie with token is provided")
-		newUUID, err := uuid.NewUUID()
-		if err != nil {
-			logger.Log.Error().Stack().Err(err).Msg("error while trying to form uuid")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		claim := config.Claims{
-			RegisteredClaims: jwt.RegisteredClaims{},
-			UserID:           newUUID.String(),
-		}
-		tokenString, err = service.BuildJWTString(claim, shortener.App.Configs.SecretKey)
-		cookieName := "token"
-		cookie := service.NewCookie(cookieName, tokenString)
-		http.SetCookie(w, cookie)
-	}
-
-	if err = cookie.Valid(); err != nil {
-		logger.Log.Error().Stack().Err(err).Msg("cookie is not valid")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	tokenString = cookie.Value
+	w.Header().Set(contentType, applicationJSON)
+	w.WriteHeader(http.StatusNoContent)
 }

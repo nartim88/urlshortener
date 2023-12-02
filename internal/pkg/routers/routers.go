@@ -12,7 +12,8 @@ import (
 func MainRouter() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.All...)
+	r.Use(middleware.WithLogging)
+	r.Use(middleware.GZipMiddleware)
 
 	r.Route("/", func(r chi.Router) {
 		r.Mount("/", textRespRouter())
@@ -27,11 +28,16 @@ func MainRouter() http.Handler {
 	return r
 }
 
+func dbPingRouter() http.Handler {
+	r := chi.NewRouter()
+	r.Get("/", handlers.DBPingHandle)
+	return r
+}
+
 func textRespRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", handlers.IndexHandle)
-
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", handlers.GetURLHandle)
 		})
@@ -41,22 +47,25 @@ func textRespRouter() http.Handler {
 
 func apiRouter() http.Handler {
 	r := chi.NewRouter()
-
 	r.Route("/", func(r chi.Router) {
 		r.Route("/shorten", func(r chi.Router) {
 			r.Post("/", handlers.GetShortURLHandle)
-
 			r.Route("/batch", func(r chi.Router) {
 				r.Post("/", handlers.GetBatchShortURLsHandle)
 			})
 		})
 	})
-
+	r.Mount("/user", userRouter())
 	return r
 }
 
-func dbPingRouter() http.Handler {
+func userRouter() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", handlers.DBPingHandle)
+	r.Use(middleware.AuthMiddleware)
+	r.Route("/", func(r chi.Router) {
+		r.Route("/urls", func(r chi.Router) {
+			r.Get("/", handlers.GetAllUserURLs)
+		})
+	})
 	return r
 }

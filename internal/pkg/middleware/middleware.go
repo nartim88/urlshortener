@@ -4,13 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/pkg/config"
 	"github.com/nartim88/urlshortener/internal/pkg/logger"
+	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
-
-var All = []func(http.Handler) http.Handler{
-	WithLogging,
-	GZipMiddleware,
-}
 
 func WithLogging(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
@@ -43,7 +41,8 @@ func WithLogging(next http.Handler) http.Handler {
 
 func GZipMiddleware(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
-		if CanCompress(*r) {
+		if canCompress(*r) {
+			logger.Log.Info().Msgf("can compress %v", canCompress(*r))
 			cw := newCompressWriter(rw)
 			rw = cw
 			defer func() {
@@ -53,10 +52,31 @@ func GZipMiddleware(next http.Handler) http.Handler {
 			}()
 		}
 
-		if err := Decompress(r); err != nil {
+		if err := decompress(r); err != nil {
 			logger.Log.Info().Err(err).Send()
 		}
 
+		next.ServeHTTP(rw, r)
+	}
+	return http.HandlerFunc(f)
+}
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	f := func(rw http.ResponseWriter, r *http.Request) {
+		cookie, err := validateCookieWithToken(*r)
+		if err != nil {
+			logger.Log.Info().Msgf("%v", err)
+			setCookieWithToken(&rw)
+		} else {
+			claims := &config.Claims{}
+			tokenString := cookie.Value
+			_, err := service.GetUserId(tokenString, shortener.App.Configs.SecretKey, claims)
+			if err != nil {
+				logger.Log.Error().Err(err).Send()
+				http.Error(rw, err.Error(), http.StatusUnauthorized)
+				return
+			}
+		}
 		next.ServeHTTP(rw, r)
 	}
 	return http.HandlerFunc(f)

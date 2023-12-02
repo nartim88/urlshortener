@@ -5,6 +5,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/pkg/config"
+	"github.com/nartim88/urlshortener/internal/pkg/logger"
+	"github.com/nartim88/urlshortener/internal/pkg/service"
 )
 
 type (
@@ -51,9 +58,7 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
-	}
+	c.w.Header().Set("Content-Encoding", "gzip")
 	c.w.WriteHeader(statusCode)
 }
 
@@ -91,7 +96,8 @@ func (c *compressReader) Close() error {
 	return c.zr.Close()
 }
 
-func Decompress(r *http.Request) error {
+// decompress распаковывает данные в запросе
+func decompress(r *http.Request) error {
 	contentEncoding := r.Header.Get("Content-Encoding")
 	sendsGzip := strings.Contains(contentEncoding, "gzip")
 
@@ -109,7 +115,8 @@ func Decompress(r *http.Request) error {
 	return nil
 }
 
-func CanCompress(r http.Request) bool {
+// canCompress проверяет возможно ли сжимать содержимое ответа
+func canCompress(r http.Request) bool {
 	contentType := r.Header.Get("Content-Type")
 	hasText := strings.Contains(contentType, "text/html")
 	hasJSON := strings.Contains(contentType, "application/json")
@@ -117,4 +124,34 @@ func CanCompress(r http.Request) bool {
 	supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
 	return supportsGzip && (hasText || hasJSON)
+}
+
+// setCookieWithToken создает куку с токеном
+func setCookieWithToken(rw *http.ResponseWriter) {
+	newUUID, err := uuid.NewUUID()
+	if err != nil {
+		logger.Log.Error().Stack().Err(err).Msg("error while trying to form uuid")
+		http.Error(*rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	claim := config.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{},
+		UserID:           newUUID.String(),
+	}
+	tokenString, err := service.BuildJWTString(claim, shortener.App.Configs.SecretKey)
+	cookieName := "token"
+	cookie := service.NewCookie(cookieName, tokenString)
+	http.SetCookie(*rw, cookie)
+}
+
+// validateCookieWithToken проверяет есть ли кука с токеном и валидность
+// и возвращает NoCookieWithTokenErr если нет.
+func validateCookieWithToken(r http.Request) (*http.Cookie, error) {
+	var cookieName = "token"
+	cookie, err := r.Cookie(cookieName)
+	err = cookie.Valid()
+	if err != nil {
+		return nil, NewNoCookieWithTokenErr(err)
+	}
+	return cookie, nil
 }

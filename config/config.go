@@ -20,7 +20,7 @@ type Config struct {
 func NewConfig() *Config {
 	cfg := Config{
 		RunAddr:  "localhost:8080",
-		BaseURL:  "http://localhost",
+		BaseURL:  "http://localhost:8080",
 		LogLevel: "info",
 	}
 	return &cfg

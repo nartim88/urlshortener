@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/routers"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/controller/api/routers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 }
 
 func TestMainRouter(t *testing.T) {
-	shortener.App.Init() // init variables for test
+	cfg := config.NewConfig()
+	cfg.ParseConfigs()
+
+	shortener.App.Init(cfg) // init variables for test
 
 	ts := httptest.NewServer(routers.MainRouter())
 	defer ts.Close()

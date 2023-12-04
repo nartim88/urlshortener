@@ -6,8 +6,6 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
-
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
 )
 
 type Claims struct {
@@ -35,18 +33,24 @@ func NewConfig() *Config {
 }
 
 // ParseConfigs инициализация парсинга конфигов из окружения и флагов
-func (conf *Config) ParseConfigs() {
-	conf.parseDotenv()
+func (conf *Config) ParseConfigs() error {
+	if err := conf.parseDotenv(); err != nil {
+		return err
+	}
 	conf.parseFlags()
-	conf.parseEnv()
+	if err := conf.parseEnv(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // parseEnv парсит переменные окружения
-func (conf *Config) parseEnv() {
+func (conf *Config) parseEnv() error {
 	err := env.Parse(conf)
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
+		return err
 	}
+	return nil
 }
 
 // parseFlags парсит флаги командной строки
@@ -61,8 +65,9 @@ func (conf *Config) parseFlags() {
 }
 
 // parseDotenv загружает в окружение переменные из .env
-func (conf *Config) parseDotenv() {
+func (conf *Config) parseDotenv() error {
 	if err := godotenv.Load(); err != nil {
-		logger.Log.Info().Err(err).Send()
+		return err
 	}
+	return nil
 }

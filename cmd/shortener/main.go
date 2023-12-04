@@ -1,11 +1,14 @@
 package main
 
 import (
+	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/routers"
 )
 
 func main() {
-	shortener.App.Init()
-	shortener.App.Run(routers.MainRouter())
+	app := shortener.NewApp()
+	cfg := config.NewConfig()
+	_ = cfg.ParseConfigs()
+	app.Init(cfg)
+	app.Run()
 }

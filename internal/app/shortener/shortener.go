@@ -11,54 +11,58 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/pkg/config"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/storage"
+	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/internal/controller/api/routers"
+	"github.com/nartim88/urlshortener/internal/service"
+	"github.com/nartim88/urlshortener/internal/storage"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type Application struct {
-	Store   storage.Storage
-	Configs config.Config
+	Configs *config.Config
+	Service service.Service
+	Handler http.Handler
 }
 
-var App Application
+func NewApp() *Application {
+	return &Application{}
+}
 
 // Init первичная инициализация приложения
-func (a *Application) Init() {
-
-	// инициализация конфигов
-	a.Configs = *config.NewConfig()
-	a.Configs.ParseConfigs()
+func (a *Application) Init(cfg *config.Config) {
 
 	// инициализация логгера
-	if err := logger.Init(a.Configs.LogLevel); err != nil {
+	if err := logger.Init(cfg.LogLevel); err != nil {
 		logger.Log.Info().Stack().Err(err).Send()
 	}
 
 	logger.Log.Info().
-		Str("SERVER_ADDRESS", a.Configs.RunAddr).
-		Str("BASE_URL", a.Configs.BaseURL).
-		Str("LOG_LEVEL", a.Configs.LogLevel).
-		Str("FILE_STORAGE_PATH", a.Configs.FileStoragePath).
-		Str("DATABASE_DSN", a.Configs.DatabaseDSN).
+		Str("SERVER_ADDRESS", cfg.RunAddr).
+		Str("BASE_URL", cfg.BaseURL).
+		Str("LOG_LEVEL", cfg.LogLevel).
+		Str("FILE_STORAGE_PATH", cfg.FileStoragePath).
+		Str("DATABASE_DSN", cfg.DatabaseDSN).
 		Str("SECRET_KEY", func() string {
-			if a.Configs.SecretKey != "" {
+			if cfg.SecretKey != "" {
 				return "true"
 			}
 			return "false"
 		}()).
 		Msg("app configs:")
 
+	a.Configs = cfg
+
 	// инициализация хранилища
 	store, err := a.initStorage()
 	if err != nil {
 		logger.Log.Error().Stack().Err(err).Send()
 	}
-	a.Store = store
+	a.Service = service.NewService(store, a.Configs)
+	a.Handler = routers.MainRouter(a.Service)
 }
 
 // Run запуск сервера
-func (a *Application) Run(h http.Handler) {
+func (a *Application) Run() {
 	var srv http.Server
 
 	logger.Log.Info().Msgf("running server on %s", a.Configs.RunAddr)
@@ -76,7 +80,7 @@ func (a *Application) Run(h http.Handler) {
 	}()
 
 	srv.Addr = a.Configs.RunAddr
-	srv.Handler = h
+	srv.Handler = a.Handler
 
 	err := srv.ListenAndServe()
 
@@ -84,7 +88,8 @@ func (a *Application) Run(h http.Handler) {
 		logger.Log.Error().Stack().Err(err).Send()
 	}
 
-	s, ok := a.Store.(storage.StorageWithService)
+	store := a.Service.GetStore()
+	s, ok := store.(storage.StorageWithService)
 	if ok {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -98,6 +103,7 @@ func (a *Application) Run(h http.Handler) {
 	logger.Log.Info().Msg("server is closed")
 }
 
+// initStorage инициализирует хранилище
 func (a *Application) initStorage() (storage.Storage, error) {
 	switch {
 	case a.Configs.DatabaseDSN != "":

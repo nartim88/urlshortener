@@ -2,16 +2,16 @@ package middleware
 
 import (
 	"compress/gzip"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/config"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type (
@@ -116,18 +116,20 @@ func decompress(r *http.Request) error {
 }
 
 // canCompress проверяет возможно ли сжимать содержимое ответа
-func canCompress(r http.Request) bool {
-	contentType := r.Header.Get("Content-Type")
-	hasText := strings.Contains(contentType, "text/html")
-	hasJSON := strings.Contains(contentType, "application/json")
+func canCompress(w http.ResponseWriter, r http.Request) bool {
+	//contentType := w.Header().Get("Content-Type")
+	//logger.Log.Info().Str("contentType", contentType).Send()
+	//hasText := strings.Contains(contentType, "text/html")
+	//hasJSON := strings.Contains(contentType, "application/json")
 	acceptEncoding := r.Header.Get("Accept-Encoding")
 	supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
-	return supportsGzip && (hasText || hasJSON)
+	//return supportsGzip && (hasText || hasJSON)
+	return supportsGzip
 }
 
 // setCookieWithToken создает куку с токеном
-func setCookieWithToken(rw *http.ResponseWriter) {
+func setCookieWithToken(rw *http.ResponseWriter, key string) {
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
 		logger.Log.Error().Stack().Err(err).Msg("error while trying to form uuid")
@@ -138,9 +140,9 @@ func setCookieWithToken(rw *http.ResponseWriter) {
 		RegisteredClaims: jwt.RegisteredClaims{},
 		UserID:           newUUID.String(),
 	}
-	tokenString, err := service.BuildJWTString(claim, shortener.App.Configs.SecretKey)
+	tokenString, err := buildJWTString(claim, key)
 	cookieName := "token"
-	cookie := service.NewCookie(cookieName, tokenString)
+	cookie := newCookie(cookieName, tokenString)
 	http.SetCookie(*rw, cookie)
 }
 
@@ -154,4 +156,52 @@ func validateCookieWithToken(r http.Request) (*http.Cookie, error) {
 		return nil, NewNoCookieWithTokenErr(err)
 	}
 	return cookie, nil
+}
+
+// newCookie возвращает новую куку с предустановленными параметрами
+func newCookie(name string, value string) *http.Cookie {
+	return &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSite(3),
+		Domain:   config.RunAddr,
+		Path:     "/",
+	}
+}
+
+// buildJWTString создаёт JWT токен и возвращает его в виде строки
+func buildJWTString(claims jwt.Claims, key string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+
+	tokenString, err := token.SignedString([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+// getUserId возвращает ID пользователя из строки с токеном
+func getUserId(tokenString string, key string, claims *config.Claims) (string, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims,
+		func(t *jwt.Token) (interface{}, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return []byte(key), nil
+		})
+	if err != nil {
+		return "", err
+	}
+
+	if !token.Valid {
+		return "", fmt.Errorf("token is not valid")
+	}
+
+	if claims.UserID == "" {
+		return "", errors.New("user id is absent in the jwt")
+	}
+	return claims.UserID, nil
 }

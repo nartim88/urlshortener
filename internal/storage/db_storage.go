@@ -6,9 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/models"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/internal/helpers"
+	"github.com/nartim88/urlshortener/internal/models"
 )
 
 type DBStorage struct {
@@ -37,11 +36,11 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 }
 
 func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
-	randChars := service.GenerateRandChars(shortURLLen)
+	randChars := GenerateRandChars(shortURLLen)
 	newSID := models.ShortenID(randChars)
 	var resSID models.ShortenID
 
-	userID, err := getUserIDFromCtx(ctx)
+	userID, err := helpers.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -94,16 +93,28 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 	return
 }
 
-func getUserIDFromCtx(ctx context.Context) (string, error) {
-	ctxKey := "userID"
-	userID := ctx.Value(ctxKey)
-	if userID == nil {
-		return "", errors.New("user id is not found in context")
+func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]*models.ShortAndFullURLs, error) {
+	rows, err := s.conn.Query(ctx, `
+		SELECT short_url, full_url FROM shortener
+		WHERE user_id = $1
+		`, u.UserID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error while trying to get URLs by user id: %w", err)
 	}
-	val, ok := userID.(string)
-	if !ok {
-		return "", errors.New("user id value must be string")
+	defer rows.Close()
+	urls, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*models.ShortAndFullURLs, error) {
+		var (
+			shortURL string
+			fullURL  models.FullURL
+		)
+		if err := row.Scan(&shortURL, &fullURL); err != nil {
+			return nil, fmt.Errorf("scan error: %w", err)
+		}
+		return &models.ShortAndFullURLs{ShortURL: shortURL, FullURL: fullURL}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	logger.Log.Info().Str(ctxKey, val).Send()
-	return val, nil
+	return urls, nil
 }

@@ -5,10 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/config"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 func WithLogging(next http.Handler) http.Handler {
@@ -42,8 +40,10 @@ func WithLogging(next http.Handler) http.Handler {
 
 func GZipMiddleware(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
-		if canCompress(*r) {
-			logger.Log.Info().Msgf("can compress %v", canCompress(*r))
+		canCompr := canCompress(rw, *r)
+		logger.Log.Info().Msgf("can compress: %v", canCompr)
+
+		if canCompr {
 			cw := newCompressWriter(rw)
 			rw = cw
 			defer func() {
@@ -62,25 +62,27 @@ func GZipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(f)
 }
 
-func AuthMiddleware(next http.Handler) http.Handler {
-	f := func(rw http.ResponseWriter, r *http.Request) {
-		cookie, err := validateCookieWithToken(*r)
-		if err != nil {
-			logger.Log.Info().Msgf("%v", err)
-			setCookieWithToken(&rw)
-		} else {
-			claims := &config.Claims{}
-			tokenString := cookie.Value
-			UserID, err := service.GetUserId(tokenString, shortener.App.Configs.SecretKey, claims)
+func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		f := func(rw http.ResponseWriter, r *http.Request) {
+			cookie, err := validateCookieWithToken(*r)
 			if err != nil {
-				logger.Log.Error().Err(err).Send()
-				http.Error(rw, err.Error(), http.StatusUnauthorized)
-				return
+				logger.Log.Info().Msgf("%v", err)
+				setCookieWithToken(&rw, cfg.SecretKey)
+			} else {
+				claims := &config.Claims{}
+				tokenString := cookie.Value
+				UserID, err := getUserId(tokenString, cfg.SecretKey, claims)
+				if err != nil {
+					logger.Log.Error().Err(err).Send()
+					http.Error(rw, err.Error(), http.StatusUnauthorized)
+					return
+				}
+				ctx := context.WithValue(r.Context(), "userID", UserID)
+				r = r.WithContext(ctx)
 			}
-			ctx := context.WithValue(r.Context(), "userID", UserID)
-			r = r.WithContext(ctx)
+			next.ServeHTTP(rw, r)
 		}
-		next.ServeHTTP(rw, r)
+		return http.HandlerFunc(f)
 	}
-	return http.HandlerFunc(f)
 }

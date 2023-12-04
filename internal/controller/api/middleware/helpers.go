@@ -117,14 +117,9 @@ func decompress(r *http.Request) error {
 
 // canCompress проверяет возможно ли сжимать содержимое ответа
 func canCompress(w http.ResponseWriter, r http.Request) bool {
-	//contentType := w.Header().Get("Content-Type")
-	//logger.Log.Info().Str("contentType", contentType).Send()
-	//hasText := strings.Contains(contentType, "text/html")
-	//hasJSON := strings.Contains(contentType, "application/json")
 	acceptEncoding := r.Header.Get("Accept-Encoding")
 	supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
-	//return supportsGzip && (hasText || hasJSON)
 	return supportsGzip
 }
 

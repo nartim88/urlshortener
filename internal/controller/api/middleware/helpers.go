@@ -10,7 +10,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
@@ -125,12 +124,12 @@ func canCompress(w http.ResponseWriter, r http.Request) bool {
 }
 
 // setCookieWithToken создает куку с токеном
-func setCookieWithToken(rw *http.ResponseWriter, key string) {
+func setCookieWithToken(rw *http.ResponseWriter, key string) *http.Cookie {
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
 		logger.Log.Error().Stack().Err(err).Msg("error while trying to form uuid")
 		http.Error(*rw, err.Error(), http.StatusInternalServerError)
-		return
+		return nil
 	}
 	claim := models.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{},
@@ -140,11 +139,12 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) {
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("error while getting jwt string")
 		http.Error(*rw, err.Error(), http.StatusInternalServerError)
-		return
+		return nil
 	}
 	cookieName := "token"
 	cookie := newCookie(cookieName, tokenString)
 	http.SetCookie(*rw, cookie)
+	return cookie
 }
 
 // validateCookieWithToken проверяет есть ли кука с токеном и валидность
@@ -170,8 +170,8 @@ func newCookie(name string, value string) *http.Cookie {
 		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSite(3),
-		Domain:   config.RunAddr,
-		Path:     "/",
+		//Domain:   config.RunAddr,
+		Path: "/",
 	}
 }
 

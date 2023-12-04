@@ -69,20 +69,19 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			cookie, err := validateCookieWithToken(*r)
 			if err != nil {
 				logger.Log.Info().Msgf("%v", err)
-				setCookieWithToken(&rw, cfg.SecretKey)
-			} else {
-				claims := &models.Claims{}
-				tokenString := cookie.Value
-				UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
-				if err != nil {
-					logger.Log.Error().Err(err).Send()
-					http.Error(rw, err.Error(), http.StatusUnauthorized)
-					return
-				}
-				k := models.UserIDCtxKey("userID")
-				ctx := context.WithValue(r.Context(), k, UserID)
-				r = r.WithContext(ctx)
+				cookie = setCookieWithToken(&rw, cfg.SecretKey)
 			}
+			claims := &models.Claims{}
+			tokenString := cookie.Value
+			UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
+			if err != nil {
+				logger.Log.Error().Err(err).Send()
+				http.Error(rw, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			k := models.UserIDCtxKey("userID")
+			ctx := context.WithValue(r.Context(), k, UserID)
+			r = r.WithContext(ctx)
 			next.ServeHTTP(rw, r)
 		}
 		return http.HandlerFunc(f)

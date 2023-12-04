@@ -19,7 +19,7 @@ type Config struct {
 // NewConfig инициализирует Config с дефолтными значениями
 func NewConfig() *Config {
 	cfg := Config{
-		RunAddr:  "localhost:8080",
+		RunAddr:  "localhost:80",
 		BaseURL:  "http://localhost",
 		LogLevel: "info",
 	}

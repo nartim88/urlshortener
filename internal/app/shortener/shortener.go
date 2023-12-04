@@ -120,7 +120,7 @@ func (a *Application) initStorage() (storage.Storage, error) {
 		if err = s.Bootstrap(ctx); err != nil {
 			return nil, fmt.Errorf("error while creating tables in db: %w", err)
 		}
-
+		logger.Log.Info().Msg("db storage is initialized")
 		return s, nil
 
 	case a.Configs.FileStoragePath != "":
@@ -128,10 +128,12 @@ func (a *Application) initStorage() (storage.Storage, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error while creating file storage: %w", err)
 		}
+		logger.Log.Info().Msg("file storage is initialized")
 		return s, nil
 
 	default:
 		s := storage.NewMemStorage()
+		logger.Log.Info().Msg("memory storage is initialized")
 		return s, nil
 	}
 }

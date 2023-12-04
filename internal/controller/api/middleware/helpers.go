@@ -170,8 +170,7 @@ func newCookie(name string, value string) *http.Cookie {
 		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSite(3),
-		//Domain:   config.RunAddr,
-		Path: "/",
+		Path:     "/",
 	}
 }
 

@@ -136,6 +136,11 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) {
 		UserID:           newUUID.String(),
 	}
 	tokenString, err := buildJWTString(claim, key)
+	if err != nil {
+		logger.Log.Error().Err(err).Msg("error while getting jwt string")
+		http.Error(*rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	cookieName := "token"
 	cookie := newCookie(cookieName, tokenString)
 	http.SetCookie(*rw, cookie)
@@ -146,6 +151,9 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) {
 func validateCookieWithToken(r http.Request) (*http.Cookie, error) {
 	var cookieName = "token"
 	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return nil, NewNoCookieWithTokenErr(err)
+	}
 	err = cookie.Valid()
 	if err != nil {
 		return nil, NewNoCookieWithTokenErr(err)
@@ -178,8 +186,8 @@ func buildJWTString(claims jwt.Claims, key string) (string, error) {
 	return tokenString, nil
 }
 
-// getUserId возвращает ID пользователя из строки с токеном
-func getUserId(tokenString string, key string, claims *config.Claims) (string, error) {
+// getUserID возвращает ID пользователя из строки с токеном
+func getUserID(tokenString string, key string, claims *config.Claims) (string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

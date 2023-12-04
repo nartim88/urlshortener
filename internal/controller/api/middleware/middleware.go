@@ -72,13 +72,14 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			} else {
 				claims := &config.Claims{}
 				tokenString := cookie.Value
-				UserID, err := getUserId(tokenString, cfg.SecretKey, claims)
+				UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
 				if err != nil {
 					logger.Log.Error().Err(err).Send()
 					http.Error(rw, err.Error(), http.StatusUnauthorized)
 					return
 				}
-				ctx := context.WithValue(r.Context(), "userID", UserID)
+				var ctxKey = "userID"
+				ctx := context.WithValue(r.Context(), ctxKey, UserID)
 				r = r.WithContext(ctx)
 			}
 			next.ServeHTTP(rw, r)

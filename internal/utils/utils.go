@@ -1,14 +1,15 @@
-package helpers
+package utils
 
 import (
 	"context"
 	"errors"
 
+	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 func GetUserIDFromCtx(ctx context.Context) (string, error) {
-	ctxKey := "userID"
+	ctxKey := models.UserIDCtxKey("userID")
 	userID := ctx.Value(ctxKey)
 	if userID == nil {
 		return "", errors.New("user id is not found in the request context")
@@ -17,6 +18,6 @@ func GetUserIDFromCtx(ctx context.Context) (string, error) {
 	if !ok {
 		return "", errors.New("user id is not valid, must be string")
 	}
-	logger.Log.Info().Str(ctxKey, val).Send()
+	logger.Log.Info().Str("userID", val).Send()
 	return val, nil
 }

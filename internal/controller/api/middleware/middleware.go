@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
@@ -70,7 +71,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 				logger.Log.Info().Msgf("%v", err)
 				setCookieWithToken(&rw, cfg.SecretKey)
 			} else {
-				claims := &config.Claims{}
+				claims := &models.Claims{}
 				tokenString := cookie.Value
 				UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
 				if err != nil {
@@ -78,8 +79,8 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 					http.Error(rw, err.Error(), http.StatusUnauthorized)
 					return
 				}
-				var ctxKey = "userID"
-				ctx := context.WithValue(r.Context(), ctxKey, UserID)
+				k := models.UserIDCtxKey("userID")
+				ctx := context.WithValue(r.Context(), k, UserID)
 				r = r.WithContext(ctx)
 			}
 			next.ServeHTTP(rw, r)

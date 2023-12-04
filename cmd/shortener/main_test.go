@@ -14,6 +14,7 @@ import (
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/controller/api/routers"
+	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,11 +52,14 @@ func getCookieWithToken(key string) (*http.Cookie, error) {
 	if err != nil {
 		return nil, err
 	}
-	claim := config.Claims{
+	claim := models.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{},
 		UserID:           newUUID.String(),
 	}
 	tokenString, err := buildJWTString(claim, key)
+	if err != nil {
+		return nil, err
+	}
 	cookieName := "token"
 	cookie := newCookie(cookieName, tokenString)
 	return cookie, nil

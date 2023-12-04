@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
@@ -131,7 +132,7 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) {
 		http.Error(*rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	claim := config.Claims{
+	claim := models.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{},
 		UserID:           newUUID.String(),
 	}
@@ -187,7 +188,7 @@ func buildJWTString(claims jwt.Claims, key string) (string, error) {
 }
 
 // getUserID возвращает ID пользователя из строки с токеном
-func getUserID(tokenString string, key string, claims *config.Claims) (string, error) {
+func getUserID(tokenString string, key string, claims *models.Claims) (string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

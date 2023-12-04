@@ -11,12 +11,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/helpers"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/models/api/v1"
 	"github.com/nartim88/urlshortener/internal/models/api/v2"
 	"github.com/nartim88/urlshortener/internal/service"
 	"github.com/nartim88/urlshortener/internal/storage"
+	"github.com/nartim88/urlshortener/internal/utils"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
@@ -250,7 +250,7 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 
 func GetAllUserURLs(svc service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID, err := helpers.GetUserIDFromCtx(r.Context())
+		userID, err := utils.GetUserIDFromCtx(r.Context())
 		if err != nil {
 			logger.Log.Error().Err(err).Send()
 			http.Error(w, err.Error(), http.StatusInternalServerError)

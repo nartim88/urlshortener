@@ -1,6 +1,9 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+)
 
 type (
 	// FullURL исходный url, переданный для сокращения
@@ -27,4 +30,11 @@ type User struct {
 type ShortAndFullURLs struct {
 	ShortURL string  `json:"short_url"`
 	FullURL  FullURL `json:"original_url"`
+}
+
+type UserIDCtxKey string
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
 }

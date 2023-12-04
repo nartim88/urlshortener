@@ -4,14 +4,8 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/joho/godotenv"
 )
-
-type Claims struct {
-	jwt.RegisteredClaims
-	UserID string
-}
 
 type Config struct {
 	RunAddr         string `env:"SERVER_ADDRESS"`

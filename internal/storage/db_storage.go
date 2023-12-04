@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/helpers"
 	"github.com/nartim88/urlshortener/internal/models"
+	"github.com/nartim88/urlshortener/internal/utils"
 )
 
 type DBStorage struct {
@@ -40,7 +40,7 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 	newSID := models.ShortenID(randChars)
 	var resSID models.ShortenID
 
-	userID, err := helpers.GetUserIDFromCtx(ctx)
+	userID, err := utils.GetUserIDFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}

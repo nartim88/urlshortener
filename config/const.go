@@ -1,7 +1,7 @@
 package config
 
 const (
-	RunAddr  = ":8080"
+	RunAddr  = "localhost:8080"
 	BaseURL  = "http://localhost:8080"
 	LogLevel = "info"
 )

@@ -46,7 +46,7 @@ func (conf *Config) parseEnv() error {
 // parseFlags парсит флаги командной строки
 func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.RunAddr, "a", RunAddr, "address and port to run server")
-	flag.StringVar(&conf.BaseURL, "b", "", "server address before shorten URL")
+	flag.StringVar(&conf.BaseURL, "b", BaseURL, "server address before shorten URL")
 	flag.StringVar(&conf.LogLevel, "l", LogLevel, "log level")
 	flag.StringVar(&conf.FileStoragePath, "f", "", "full file name for saving URLs")
 	flag.StringVar(&conf.DatabaseDSN, "d", "", "database DSN")

@@ -23,15 +23,14 @@ func NewConfig() *Config {
 }
 
 // ParseConfigs инициализация парсинга конфигов из окружения и флагов
-func (conf *Config) ParseConfigs() error {
+func (conf *Config) ParseConfigs() {
 	if err := conf.parseDotenv(); err != nil {
-		return err
+		log.Error().Err(err).Send()
 	}
 	conf.parseFlags()
 	if err := conf.parseEnv(); err != nil {
-		return err
+		log.Error().Err(err).Send()
 	}
-	return nil
 }
 
 // parseEnv парсит переменные окружения

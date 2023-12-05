@@ -6,9 +6,12 @@ import (
 )
 
 func main() {
-	app := shortener.NewApp()
 	cfg := config.NewConfig()
-	_ = cfg.ParseConfigs()
+	err := cfg.ParseConfigs()
+	if err != nil {
+		panic(err)
+	}
+	app := shortener.NewApp()
 	app.Init(cfg)
 	app.Run()
 }

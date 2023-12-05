@@ -23,7 +23,7 @@ type Storage interface {
 	// Set сохраняет в базу полный УРЛ и соответствующий ему строковой идентификатор
 	Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error)
 	// ListURLs возвращает все записи переданного пользователя
-	ListURLs(ctx context.Context, u models.User) ([]*models.ShortAndFullURLs, error)
+	ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error)
 }
 
 // StorageWithService расширенный интерфейс для работы с данными, подходящий для работы с

@@ -38,7 +38,7 @@ func (s *MemStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shor
 	return &shortURL, nil
 }
 
-func (s *MemStorage) ListURLs(ctx context.Context, u models.User) ([]*models.ShortAndFullURLs, error) {
+func (s *MemStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
 	return nil, nil
 }
 

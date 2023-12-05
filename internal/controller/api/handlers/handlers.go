@@ -261,22 +261,18 @@ func GetAllUserURLs(svc service.Service) http.HandlerFunc {
 		defer cancel()
 
 		user := models.User{UserID: userID}
-		data, err := svc.GetAllURLs(ctx, user)
-		logger.Log.Info().Any("data", data).Send()
+		resp, err := svc.GetAllURLs(ctx, user)
+		logger.Log.Info().Any("user urls:", resp).Send()
 		if err != nil {
 			logger.Log.Error().Stack().Err(err).Send()
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if len(data) == 0 {
+		if len(resp) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		resp := make([]models.ShortAndFullURLs, 0)
-		for _, v := range data {
-			resp = append(resp, *v)
-		}
 		respEncoded, err := json.Marshal(resp)
 		if err != nil {
 			logger.Log.Error().Err(err).Msg("error while serializing response")

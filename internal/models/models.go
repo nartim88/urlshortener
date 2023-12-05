@@ -28,8 +28,8 @@ type User struct {
 }
 
 type ShortAndFullURLs struct {
-	ShortURL string  `json:"short_url"`
-	FullURL  FullURL `json:"original_url"`
+	ShortURL ShortURL `json:"short_url"`
+	FullURL  FullURL  `json:"original_url"`
 }
 
 type UserIDCtxKey string
@@ -37,4 +37,9 @@ type UserIDCtxKey string
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID string
+}
+
+type SIDAndFullURL struct {
+	ShortenID
+	FullURL
 }

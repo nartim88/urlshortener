@@ -8,11 +8,12 @@ import (
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/storage"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type Service interface {
 	CreateShortenURL(ctx context.Context, fURL models.FullURL) (*models.ShortURL, error)
-	GetAllURLs(ctx context.Context, user models.User) ([]*models.ShortAndFullURLs, error)
+	GetAllURLs(ctx context.Context, user models.User) ([]models.ShortAndFullURLs, error)
 	GetStore() storage.Storage
 	GetFullURL(ctx context.Context, sID models.ShortenID) (*models.FullURL, error)
 	GetConfigs() *config.Config
@@ -42,12 +43,18 @@ func (s service) CreateShortenURL(ctx context.Context, fURL models.FullURL) (*mo
 	return &shortURL, nil
 }
 
-func (s service) GetAllURLs(ctx context.Context, user models.User) ([]*models.ShortAndFullURLs, error) {
+func (s service) GetAllURLs(ctx context.Context, user models.User) ([]models.ShortAndFullURLs, error) {
 	data, err := s.store.ListURLs(ctx, user)
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	URLs := make([]models.ShortAndFullURLs, 0)
+	logger.Log.Info().Any("data", data).Send()
+	for _, v := range data {
+		shortURL := models.ShortURL(s.cfg.BaseURL + "/" + string(v.ShortenID))
+		URLs = append(URLs, models.ShortAndFullURLs{ShortURL: shortURL, FullURL: v.FullURL})
+	}
+	return URLs, nil
 }
 
 func (s service) GetStore() storage.Storage {

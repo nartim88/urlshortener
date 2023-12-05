@@ -18,6 +18,6 @@ func GetUserIDFromCtx(ctx context.Context) (string, error) {
 	if !ok {
 		return "", errors.New("user id is not valid, must be string")
 	}
-	logger.Log.Info().Str("userID", val).Send()
+	logger.Log.Info().Str("userID", val).Msg("got user id from ctx")
 	return val, nil
 }

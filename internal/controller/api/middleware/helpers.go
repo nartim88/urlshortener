@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -174,8 +175,9 @@ func newCookie(name string, value string) *http.Cookie {
 		Value:    value,
 		Secure:   true,
 		HttpOnly: true,
-		//SameSite: http.SameSite(3),
-		Path: "/",
+		SameSite: http.SameSite(3),
+		Path:     "/",
+		Expires:  time.Now().Add(time.Hour * 24 * 7),
 	}
 }
 

@@ -70,6 +70,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			if err != nil {
 				logger.Log.Info().Msgf("%v", err)
 				cookie = setCookieWithToken(&rw, cfg.SecretKey)
+				logger.Log.Info().Msg("new cookie is created")
 			}
 			claims := &models.Claims{}
 			tokenString := cookie.Value

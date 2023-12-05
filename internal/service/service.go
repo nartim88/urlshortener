@@ -8,7 +8,6 @@ import (
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/storage"
-	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type Service interface {
@@ -45,7 +44,6 @@ func (s service) CreateShortenURL(ctx context.Context, fURL models.FullURL) (*mo
 
 func (s service) GetAllURLs(ctx context.Context, user models.User) ([]*models.ShortAndFullURLs, error) {
 	data, err := s.store.ListURLs(ctx, user)
-	logger.Log.Info().Any("data from service", data).Send()
 	if err != nil {
 		return nil, err
 	}

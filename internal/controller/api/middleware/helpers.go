@@ -39,8 +39,9 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 // compressWriter реализует интерфейс http.ResponseWriter,
 // сжимает передаваемые данные и выставляет правильные HTTP-заголовки
 type compressWriter struct {
-	w  http.ResponseWriter
-	zw *gzip.Writer
+	w          http.ResponseWriter
+	zw         *gzip.Writer
+	statusCode int
 }
 
 func newCompressWriter(w http.ResponseWriter) *compressWriter {
@@ -58,12 +59,16 @@ func (c *compressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
+	c.statusCode = statusCode
 	c.w.Header().Set("Content-Encoding", "gzip")
 	c.w.WriteHeader(statusCode)
 }
 
 func (c *compressWriter) Close() error {
-	return c.zw.Close()
+	if c.statusCode != http.StatusNoContent {
+		return c.zw.Close()
+	}
+	return nil
 }
 
 // compressReader реализует интерфейс io.ReadCloser и
@@ -169,8 +174,8 @@ func newCookie(name string, value string) *http.Cookie {
 		Value:    value,
 		Secure:   true,
 		HttpOnly: true,
-		SameSite: http.SameSite(3),
-		Path:     "/",
+		//SameSite: http.SameSite(3),
+		Path: "/",
 	}
 }
 

@@ -66,36 +66,60 @@ func GZipMiddleware(next http.Handler) http.Handler {
 func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		f := func(rw http.ResponseWriter, r *http.Request) {
+			var UserID string
 			var tokenString string
-			cookie, err := checkCookieWithToken(*r)
-			if err != nil {
-				logger.Log.Info().Msgf("%v", err)
-				tokenString = r.Header.Get("Authorization")
-				if tokenString == "" {
-					logger.Log.Info().Msg("no authorization header was found")
-					cookie = setTokenToResp(&rw, cfg.SecretKey)
-					logger.Log.Info().Msg("new cookie and authorization header are set")
+
+			logger.Log.Info().Msgf("path: %s", r.URL.Path)
+			switch r.URL.Path {
+			case "/api/user/urls":
+				cookie, err := checkCookieWithToken(*r)
+				if err != nil {
+					rw.WriteHeader(http.StatusUnauthorized)
+					return
 				}
-			}
-			claims := &models.Claims{}
-			tokenString = cookie.Value
+				claims := &models.Claims{}
+				tokenString = cookie.Value
+				UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
+				if err != nil {
+					logger.Log.Error().Err(err).Send()
+					http.Error(rw, err.Error(), http.StatusUnauthorized)
+					return
+				}
+				k := models.UserIDCtxKey("userID")
+				ctx := context.WithValue(r.Context(), k, UserID)
+				r = r.WithContext(ctx)
+			default:
+				cookie, err := checkCookieWithToken(*r)
+				if err != nil {
+					logger.Log.Info().Msgf("%v", err)
+					tokenString = r.Header.Get("Authorization")
+					if tokenString == "" {
+						logger.Log.Info().Msg("no authorization header was found")
+						cookie = setTokenToResp(&rw, cfg.SecretKey)
+						logger.Log.Info().Msg("new cookie and authorization header are set")
+					}
+				}
+				claims := &models.Claims{}
+				tokenString = cookie.Value
 
-			//tokenString = r.Header.Get("Authorization")
-			//logger.Log.Info().Str("authorization header", tokenString).Send()
-			//if strings.Contains(tokenString, "Bearer") {
-			//	tokenString = strings.Split(tokenString, "Bearer ")[1]
-			//}
-			logger.Log.Info().Str("tokenString", tokenString).Send()
+				//tokenString = r.Header.Get("Authorization")
+				//logger.Log.Info().Str("authorization header", tokenString).Send()
+				//if strings.Contains(tokenString, "Bearer") {
+				//	tokenString = strings.Split(tokenString, "Bearer ")[1]
+				//}
 
-			UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
-			if err != nil {
-				logger.Log.Error().Err(err).Send()
-				http.Error(rw, err.Error(), http.StatusUnauthorized)
-				return
+				logger.Log.Info().Str("tokenString", tokenString).Send()
+
+				UserID, err = getUserID(tokenString, cfg.SecretKey, claims)
+				if err != nil {
+					logger.Log.Error().Err(err).Send()
+					http.Error(rw, err.Error(), http.StatusUnauthorized)
+					return
+				}
+				k := models.UserIDCtxKey("userID")
+				ctx := context.WithValue(r.Context(), k, UserID)
+				r = r.WithContext(ctx)
 			}
-			k := models.UserIDCtxKey("userID")
-			ctx := context.WithValue(r.Context(), k, UserID)
-			r = r.WithContext(ctx)
 			next.ServeHTTP(rw, r)
 		}
 		return http.HandlerFunc(f)

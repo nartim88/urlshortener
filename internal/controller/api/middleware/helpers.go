@@ -129,8 +129,8 @@ func canCompress(w http.ResponseWriter, r http.Request) bool {
 	return supportsGzip
 }
 
-// setCookieWithToken создает куку с токеном
-func setCookieWithToken(rw *http.ResponseWriter, key string) *http.Cookie {
+// setTokenToResp создает токен и устанавливает в куку и хедер
+func setTokenToResp(rw *http.ResponseWriter, key string) *http.Cookie {
 	newUUID, err := uuid.NewUUID()
 	if err != nil {
 		logger.Log.Error().Stack().Err(err).Msg("error while trying to form uuid")
@@ -148,8 +148,7 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) *http.Cookie {
 		return nil
 	}
 
-	var nw http.ResponseWriter
-	nw = *rw
+	nw := *rw
 	nw.Header().Set("Authorization", tokenString)
 	logger.Log.Info().Msgf("rw headers: %#v", nw.Header())
 	rw = &nw
@@ -160,9 +159,9 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) *http.Cookie {
 	return cookie
 }
 
-// validateCookieWithToken проверяет есть ли кука с токеном и валидность
+// checkCookieWithToken проверяет есть ли кука с токеном и валидность
 // и возвращает NoCookieWithTokenErr если нет.
-func validateCookieWithToken(r http.Request) (*http.Cookie, error) {
+func checkCookieWithToken(r http.Request) (*http.Cookie, error) {
 	var cookieName = "token"
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
@@ -178,13 +177,13 @@ func validateCookieWithToken(r http.Request) (*http.Cookie, error) {
 // newCookie возвращает новую куку с предустановленными параметрами
 func newCookie(name string, value string) *http.Cookie {
 	return &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSite(3),
-		Path:     "/",
-		Expires:  time.Now().Add(time.Hour * 24 * 7),
+		Name:  name,
+		Value: value,
+		//Secure:   true,
+		//HttpOnly: true,
+		//SameSite: http.SameSite(3),
+		Path:    "/",
+		Expires: time.Now().Add(time.Hour * 24 * 7),
 	}
 }
 
@@ -200,7 +199,7 @@ func buildJWTString(claims jwt.Claims, key string) (string, error) {
 	return tokenString, nil
 }
 
-// getUserID возвращает ID пользователя из строки с токеном
+// getUserID производит валидацию токена и возвращает ID пользователя из него
 func getUserID(tokenString string, key string, claims *models.Claims) (string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {

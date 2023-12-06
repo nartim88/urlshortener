@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/nartim88/urlshortener/config"
@@ -67,20 +66,25 @@ func GZipMiddleware(next http.Handler) http.Handler {
 func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		f := func(rw http.ResponseWriter, r *http.Request) {
-			cookie, err := validateCookieWithToken(*r)
+			var tokenString string
+			cookie, err := checkCookieWithToken(*r)
 			if err != nil {
 				logger.Log.Info().Msgf("%v", err)
-				cookie = setCookieWithToken(&rw, cfg.SecretKey)
-				logger.Log.Info().Msg("new cookie is created")
+				tokenString = r.Header.Get("Authorization")
+				if tokenString == "" {
+					logger.Log.Info().Msg("no authorization header was found")
+					cookie = setTokenToResp(&rw, cfg.SecretKey)
+					logger.Log.Info().Msg("new cookie and authorization header are set")
+				}
 			}
 			claims := &models.Claims{}
-			tokenString := cookie.Value
+			tokenString = cookie.Value
 
-			tokenString = r.Header.Get("Authorization")
-			logger.Log.Info().Str("authorization header", tokenString).Send()
-			if strings.Contains(tokenString, "Bearer") {
-				tokenString = strings.Split(tokenString, "Bearer ")[1]
-			}
+			//tokenString = r.Header.Get("Authorization")
+			//logger.Log.Info().Str("authorization header", tokenString).Send()
+			//if strings.Contains(tokenString, "Bearer") {
+			//	tokenString = strings.Split(tokenString, "Bearer ")[1]
+			//}
 			logger.Log.Info().Str("tokenString", tokenString).Send()
 
 			UserID, err := getUserID(tokenString, cfg.SecretKey, claims)

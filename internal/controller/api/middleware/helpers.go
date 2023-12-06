@@ -147,6 +147,13 @@ func setCookieWithToken(rw *http.ResponseWriter, key string) *http.Cookie {
 		http.Error(*rw, err.Error(), http.StatusInternalServerError)
 		return nil
 	}
+
+	var nw http.ResponseWriter
+	nw = *rw
+	nw.Header().Set("Authorization", tokenString)
+	logger.Log.Info().Msgf("rw headers: %#v", nw.Header())
+	rw = &nw
+
 	cookieName := "token"
 	cookie := newCookie(cookieName, tokenString)
 	http.SetCookie(*rw, cookie)

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/nartim88/urlshortener/config"
@@ -74,6 +75,14 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 			}
 			claims := &models.Claims{}
 			tokenString := cookie.Value
+
+			tokenString = r.Header.Get("Authorization")
+			logger.Log.Info().Str("authorization header", tokenString).Send()
+			if strings.Contains(tokenString, "Bearer") {
+				tokenString = strings.Split(tokenString, "Bearer ")[1]
+			}
+			logger.Log.Info().Str("tokenString", tokenString).Send()
+
 			UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
 			if err != nil {
 				logger.Log.Error().Err(err).Send()

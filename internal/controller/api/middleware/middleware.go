@@ -71,6 +71,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 
 			logger.Log.Info().Msgf("path: %s", r.URL.Path)
 			switch r.URL.Path {
+			// согласно тестам на это точке кука не выдается
 			case "/api/user/urls":
 				cookie, err := checkCookieWithToken(*r)
 				if err != nil {

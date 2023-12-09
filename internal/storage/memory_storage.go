@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/nartim88/urlshortener/internal/pkg/models"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/internal/models"
 )
 
 type MemStorage struct {
@@ -29,7 +28,7 @@ func (s *MemStorage) Get(ctx context.Context, sID models.ShortenID) (*models.Ful
 }
 
 func (s *MemStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
-	randChars := service.GenerateRandChars(shortURLLen)
+	randChars := GenerateRandChars(shortURLLen)
 	shortURL := models.ShortenID(randChars)
 
 	if s.isExist(shortURL) {
@@ -37,6 +36,10 @@ func (s *MemStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shor
 	}
 	s.Memory[shortURL] = fURL
 	return &shortURL, nil
+}
+
+func (s *MemStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
+	return nil, nil
 }
 
 // isExist проверяет сохранен ли в памяти короткий УРЛ

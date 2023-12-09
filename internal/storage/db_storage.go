@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/nartim88/urlshortener/internal/pkg/models"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/internal/models"
+	"github.com/nartim88/urlshortener/internal/utils"
 )
 
 type DBStorage struct {
@@ -36,18 +36,23 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 }
 
 func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
-	randChars := service.GenerateRandChars(shortURLLen)
+	randChars := GenerateRandChars(shortURLLen)
 	newSID := models.ShortenID(randChars)
 	var resSID models.ShortenID
 
-	err := s.conn.QueryRow(ctx, `
-		INSERT INTO shortener (full_url, short_url)
-		VALUES ($1, $2)
+	userID, err := utils.GetUserIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.conn.QueryRow(ctx, `
+		INSERT INTO shortener (user_id, full_url, short_url)
+		VALUES ($1, $2, $3)
 		ON CONFLICT (full_url) DO UPDATE
 			SET full_url = EXCLUDED.full_url
 		RETURNING short_url;
 		`,
-		fURL, newSID,
+		userID, fURL, newSID,
 	).Scan(&resSID)
 	if err != nil {
 		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
@@ -76,6 +81,7 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 	_, err = s.conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS shortener (
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+		    user_id uuid,
 		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),
 		    short_url VARCHAR(8) NOT NULL CHECK (short_url <> ''),
 		    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -85,4 +91,30 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 		`,
 	)
 	return
+}
+
+func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
+	rows, err := s.conn.Query(ctx, `
+		SELECT short_url, full_url FROM shortener
+		WHERE user_id = $1
+		`, u.UserID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error while trying to get URLs by user id: %w", err)
+	}
+	defer rows.Close()
+	urls, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.SIDAndFullURL, error) {
+		var (
+			shortenID models.ShortenID
+			fullURL   models.FullURL
+		)
+		if err := row.Scan(&shortenID, &fullURL); err != nil {
+			return models.SIDAndFullURL{}, fmt.Errorf("scan error: %w", err)
+		}
+		return models.SIDAndFullURL{ShortenID: shortenID, FullURL: fullURL}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return urls, nil
 }

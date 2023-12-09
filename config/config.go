@@ -5,8 +5,7 @@ import (
 
 	"github.com/caarlos0/env"
 	"github.com/joho/godotenv"
-
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
+	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
@@ -15,31 +14,32 @@ type Config struct {
 	LogLevel        string `env:"LOG_LEVEL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	SecretKey       string `env:"SECRET_KEY"`
 }
 
 // NewConfig инициализирует Config с дефолтными значениями
 func NewConfig() *Config {
-	cfg := Config{
-		RunAddr:  "localhost:8080",
-		BaseURL:  "http://localhost",
-		LogLevel: "info",
-	}
-	return &cfg
+	return &Config{}
 }
 
 // ParseConfigs инициализация парсинга конфигов из окружения и флагов
 func (conf *Config) ParseConfigs() {
-	conf.parseDotenv()
+	if err := conf.parseDotenv(); err != nil {
+		log.Error().Err(err).Send()
+	}
 	conf.parseFlags()
-	conf.parseEnv()
+	if err := conf.parseEnv(); err != nil {
+		log.Error().Err(err).Send()
+	}
 }
 
 // parseEnv парсит переменные окружения
-func (conf *Config) parseEnv() {
+func (conf *Config) parseEnv() error {
 	err := env.Parse(conf)
 	if err != nil {
-		logger.Log.Info().Err(err).Send()
+		return err
 	}
+	return nil
 }
 
 // parseFlags парсит флаги командной строки
@@ -49,13 +49,27 @@ func (conf *Config) parseFlags() {
 	flag.StringVar(&conf.LogLevel, "l", LogLevel, "log level")
 	flag.StringVar(&conf.FileStoragePath, "f", "", "full file name for saving URLs")
 	flag.StringVar(&conf.DatabaseDSN, "d", "", "database DSN")
-
 	flag.Parse()
+
+	log.Info().
+		Str("SERVER_ADDRESS", conf.RunAddr).
+		Str("BASE_URL", conf.BaseURL).
+		Str("LOG_LEVEL", conf.LogLevel).
+		Str("FILE_STORAGE_PATH", conf.FileStoragePath).
+		Str("DATABASE_DSN", conf.DatabaseDSN).
+		Str("SECRET_KEY", func() string {
+			if conf.SecretKey != "" {
+				return "true"
+			}
+			return "false"
+		}()).
+		Msg("got flags:")
 }
 
 // parseDotenv загружает в окружение переменные из .env
-func (conf *Config) parseDotenv() {
+func (conf *Config) parseDotenv() error {
 	if err := godotenv.Load(); err != nil {
-		logger.Log.Info().Err(err).Send()
+		return err
 	}
+	return nil
 }

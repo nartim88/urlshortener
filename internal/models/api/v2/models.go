@@ -1,6 +1,8 @@
 package v2
 
-import "github.com/nartim88/urlshortener/internal/pkg/models"
+import (
+	"github.com/nartim88/urlshortener/internal/models"
+)
 
 type Request struct {
 	Data []RequestData

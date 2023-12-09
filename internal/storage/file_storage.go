@@ -8,9 +8,8 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	"github.com/nartim88/urlshortener/internal/pkg/logger"
-	"github.com/nartim88/urlshortener/internal/pkg/models"
-	"github.com/nartim88/urlshortener/internal/pkg/service"
+	"github.com/nartim88/urlshortener/internal/models"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type FileStorage struct {
@@ -43,7 +42,7 @@ func (s *FileStorage) Get(ctx context.Context, sID models.ShortenID) (*models.Fu
 }
 
 func (s *FileStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
-	randChars := service.GenerateRandChars(shortURLLen)
+	randChars := GenerateRandChars(shortURLLen)
 	sID := models.ShortenID(randChars)
 
 	_, err := s.getByShortURL(sID)
@@ -67,6 +66,10 @@ func (s *FileStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Sho
 	}
 
 	return &sID, nil
+}
+
+func (s *FileStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
+	return nil, nil
 }
 
 // getByShortURL возвращает полный урл по короткому

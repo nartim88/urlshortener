@@ -29,6 +29,7 @@ func Init(level string) error {
 		Timestamp().
 		Caller().
 		Int("pid", os.Getgid()).
+		Stack().
 		Logger()
 
 	Log = logger

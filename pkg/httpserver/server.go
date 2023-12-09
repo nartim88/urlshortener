@@ -2,6 +2,8 @@ package httpserver
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -12,11 +14,12 @@ type Server struct {
 	shutdownTimeout time.Duration
 }
 
-func NewServer(h http.Handler, addr string) *Server {
+func NewServer(h http.Handler, addr string, timeout time.Duration) *Server {
 	httpServer := &http.Server{Handler: h, Addr: addr}
 	s := &Server{
-		server: httpServer,
-		notify: make(chan error, 1),
+		server:          httpServer,
+		notify:          make(chan error, 1),
+		shutdownTimeout: timeout,
 	}
 	s.start()
 	return s
@@ -34,8 +37,20 @@ func (s Server) Notify() <-chan error {
 }
 
 func (s Server) Shutdown() error {
-	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
-	defer cancel()
-
-	return s.server.Shutdown(ctx)
+	shutdownCtx, _ := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	errCh := make(chan error)
+	go func() {
+		<-shutdownCtx.Done()
+		if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
+			err := fmt.Errorf("graceful shutdown timeout, forcing quit: %w", shutdownCtx.Err())
+			errCh <- err
+		}
+	}()
+	var err error
+	select {
+	case err = <-errCh:
+	default:
+		err = s.server.Shutdown(shutdownCtx)
+	}
+	return err
 }

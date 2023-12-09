@@ -15,6 +15,7 @@ import (
 	"github.com/nartim88/urlshortener/internal/controller/api/routers"
 	"github.com/nartim88/urlshortener/internal/service"
 	"github.com/nartim88/urlshortener/internal/storage"
+	"github.com/nartim88/urlshortener/pkg/httpserver"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
@@ -63,27 +64,24 @@ func (a *Application) Init(cfg *config.Config) {
 
 // Run запуск сервера
 func (a *Application) Run() {
-	var srv http.Server
+	server := httpserver.NewServer(a.Handler, a.Configs.RunAddr, 30*time.Second)
 
 	logger.Log.Info().Msgf("running server on %s", a.Configs.RunAddr)
 
 	idleConnsClosed := make(chan struct{})
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM)
-		<-sigint
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
-		if err := srv.Shutdown(context.Background()); err != nil {
+	go func() {
+		<-sig
+
+		if err := server.Shutdown(); err != nil {
 			logger.Log.Error().Stack().Err(err).Send()
 		}
 		close(idleConnsClosed)
 	}()
 
-	srv.Addr = a.Configs.RunAddr
-	srv.Handler = a.Handler
-
-	err := srv.ListenAndServe()
-
+	err := <-server.Notify()
 	if !errors.Is(err, http.ErrServerClosed) {
 		logger.Log.Error().Stack().Err(err).Send()
 	}

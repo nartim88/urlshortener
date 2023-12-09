@@ -8,14 +8,13 @@ import (
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
+	"github.com/rs/xid"
+	"github.com/rs/zerolog"
 )
 
 func WithLogging(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-
-		uri := r.RequestURI
-		method := r.Method
 
 		respData := &responseData{
 			status: 0,
@@ -25,16 +24,34 @@ func WithLogging(next http.Handler) http.Handler {
 			ResponseWriter: rw,
 			responseData:   respData,
 		}
+		correlationID := xid.New().String()
+		lrw.Header().Add("X-Correlation-ID", correlationID)
+
+		ctx := context.WithValue(r.Context(), "correlation_id", correlationID)
+		r = r.WithContext(ctx)
+		logger.Log.UpdateContext(func(c zerolog.Context) zerolog.Context {
+			return c.Str("correlation_id", correlationID)
+		})
+
+		uri := r.RequestURI
+		method := r.Method
+
+		defer func() {
+			panicVal := recover()
+			if panicVal != nil {
+				lrw.responseData.status = http.StatusInternalServerError
+				panic(panicVal)
+			}
+			logger.Log.Info().
+				Str("uri", uri).
+				Str("method", method).
+				TimeDiff("duration", time.Now(), start).
+				Int("status", respData.status).
+				Int("size", respData.size).
+				Msg("incoming request")
+		}()
 
 		next.ServeHTTP(&lrw, r)
-
-		logger.Log.Info().
-			Str("uri", uri).
-			Str("method", method).
-			TimeDiff("duration", time.Now(), start).
-			Int("status", respData.status).
-			Int("size", respData.size).
-			Send()
 	}
 	return http.HandlerFunc(f)
 }

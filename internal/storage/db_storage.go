@@ -93,7 +93,7 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 	return
 }
 
-func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
+func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL, error) {
 	rows, err := s.conn.Query(ctx, `
 		SELECT short_url, full_url FROM shortener
 		WHERE user_id = $1
@@ -103,15 +103,15 @@ func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAnd
 		return nil, fmt.Errorf("error while trying to get URLs by user id: %w", err)
 	}
 	defer rows.Close()
-	urls, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (models.SIDAndFullURL, error) {
+	urls, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (SIDAndFullURL, error) {
 		var (
 			shortenID models.ShortenID
 			fullURL   models.FullURL
 		)
 		if err := row.Scan(&shortenID, &fullURL); err != nil {
-			return models.SIDAndFullURL{}, fmt.Errorf("scan error: %w", err)
+			return SIDAndFullURL{}, fmt.Errorf("scan error: %w", err)
 		}
-		return models.SIDAndFullURL{ShortenID: shortenID, FullURL: fullURL}, nil
+		return SIDAndFullURL{ShortenID: shortenID, FullURL: fullURL}, nil
 	})
 	if err != nil {
 		return nil, err

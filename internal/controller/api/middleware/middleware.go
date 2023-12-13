@@ -5,12 +5,18 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 )
+
+type Claims struct {
+	jwt.RegisteredClaims
+	UserID string
+}
 
 func WithLogging(next http.Handler) http.Handler {
 	f := func(rw http.ResponseWriter, r *http.Request) {
@@ -95,7 +101,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 					rw.WriteHeader(http.StatusUnauthorized)
 					return
 				}
-				claims := &models.Claims{}
+				claims := &Claims{}
 				tokenString = cookie.Value
 				UserID, err := getUserID(tokenString, cfg.SecretKey, claims)
 				if err != nil {
@@ -117,7 +123,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 						logger.Log.Info().Msg("new cookie and authorization header are set")
 					}
 				}
-				claims := &models.Claims{}
+				claims := &Claims{}
 				tokenString = cookie.Value
 
 				//tokenString = r.Header.Get("Authorization")

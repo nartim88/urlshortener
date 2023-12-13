@@ -68,7 +68,7 @@ func (s *FileStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Sho
 	return &sID, nil
 }
 
-func (s *FileStorage) ListURLs(ctx context.Context, u models.User) ([]models.SIDAndFullURL, error) {
+func (s *FileStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL, error) {
 	return nil, nil
 }
 

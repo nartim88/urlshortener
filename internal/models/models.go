@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
 
@@ -34,12 +33,10 @@ type ShortAndFullURLs struct {
 
 type UserIDCtxKey string
 
-type Claims struct {
-	jwt.RegisteredClaims
-	UserID string
-}
-
-type SIDAndFullURL struct {
-	ShortenID
-	FullURL
+type URLsModel struct {
+	ID          string    `json:"id,omitempty"`
+	ShortenID   ShortenID `json:"shorten_id,omitempty"`
+	FullURL     FullURL   `json:"original_url,omitempty"`
+	ShortURL    ShortURL  `json:"short_url,omitempty"`
+	DeletedFlag bool      `json:"deleted_flag,omitempty"`
 }

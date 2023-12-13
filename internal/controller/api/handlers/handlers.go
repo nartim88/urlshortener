@@ -290,3 +290,9 @@ func UserURLsGet(svc service.Service) http.HandlerFunc {
 
 	}
 }
+
+func UserURLsDelete(svc service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}

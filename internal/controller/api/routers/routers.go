@@ -65,6 +65,7 @@ func userRouter(srv service.Service) http.Handler {
 	r.Route("/", func(r chi.Router) {
 		r.Route("/urls", func(r chi.Router) {
 			r.Get("/", handlers.UserURLsGet(srv))
+			r.Delete("/", handlers.UserURLsDelete(srv))
 		})
 	})
 	return r

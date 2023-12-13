@@ -64,7 +64,7 @@ func userRouter(srv service.Service) http.Handler {
 	r := chi.NewRouter()
 	r.Route("/", func(r chi.Router) {
 		r.Route("/urls", func(r chi.Router) {
-			r.Get("/", handlers.GetAllUserURLs(srv))
+			r.Get("/", handlers.UserURLsGet(srv))
 		})
 	})
 	return r

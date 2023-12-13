@@ -248,7 +248,7 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 	}
 }
 
-func GetAllUserURLs(svc service.Service) http.HandlerFunc {
+func UserURLsGet(svc service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := utils.GetUserIDFromCtx(r.Context())
 		if err != nil {

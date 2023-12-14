@@ -23,7 +23,7 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 	err := s.conn.QueryRow(ctx, `
 		SELECT full_url 
 		FROM shortener 
-		WHERE short_url=$1`,
+		WHERE shorten_id=$1`,
 		sID,
 	).Scan(&fURL)
 	if err != nil {
@@ -46,11 +46,11 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 	}
 
 	err = s.conn.QueryRow(ctx, `
-		INSERT INTO shortener (user_id, full_url, short_url)
+		INSERT INTO shortener (user_id, full_url, shorten_id)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (full_url) DO UPDATE
 			SET full_url = EXCLUDED.full_url
-		RETURNING short_url;
+		RETURNING shorten_id;
 		`,
 		userID, fURL, newSID,
 	).Scan(&resSID)
@@ -83,11 +83,11 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 		    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
 		    user_id uuid,
 		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),
-		    short_url VARCHAR(8) NOT NULL CHECK (short_url <> ''),
+		    shorten_id VARCHAR(8) NOT NULL CHECK (shorten_id <> ''),
 		    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 		    is_deleted BOOLEAN
 		);
-		CREATE INDEX IF NOT EXISTS shortener_short_url_idx ON shortener (short_url);
+		CREATE INDEX IF NOT EXISTS shortener_short_url_idx ON shortener (shorten_id);
 		CREATE UNIQUE INDEX IF NOT EXISTS shortener_full_url_unique_idx ON shortener (full_url)
 		`,
 	)
@@ -96,7 +96,7 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 
 func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL, error) {
 	rows, err := s.conn.Query(ctx, `
-		SELECT short_url, full_url FROM shortener
+		SELECT shorten_id, full_url FROM shortener
 		WHERE user_id = $1
 		`, u.UserID,
 	)
@@ -118,4 +118,25 @@ func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL
 		return nil, err
 	}
 	return urls, nil
+}
+
+func (s DBStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error {
+	var params string
+
+	for _, id := range IDs {
+		params = params + fmt.Sprintf("%s", id)
+	}
+
+	params = "(" + params + ")"
+	query := `
+		UPDATE shortener
+		SET is_deleted = true
+		WHERE shorten_id IN ` + params
+	_, err := s.conn.Exec(ctx, query)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

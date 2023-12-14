@@ -29,6 +29,8 @@ type Storage interface {
 	Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error)
 	// ListURLs возвращает все записи переданного пользователя
 	ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL, error)
+	// MarkAsDeletedByID помечает урлы как удаленные по строковым идентификаторам
+	MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error
 }
 
 // StorageWithService расширенный интерфейс для работы с данными, подходящий для работы с

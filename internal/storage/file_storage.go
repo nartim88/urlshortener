@@ -72,6 +72,10 @@ func (s *FileStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFull
 	return nil, nil
 }
 
+func (s *FileStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error {
+	return nil
+}
+
 // getByShortURL возвращает полный урл по короткому
 func (s *FileStorage) getByShortURL(sID models.ShortenID) (*models.FileJSONEntry, error) {
 	var entry models.FileJSONEntry

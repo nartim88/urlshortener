@@ -47,3 +47,7 @@ func (s *MemStorage) isExist(sID models.ShortenID) bool {
 	_, ok := s.Memory[sID]
 	return ok
 }
+
+func (s *MemStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error {
+	return nil
+}

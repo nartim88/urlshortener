@@ -293,6 +293,26 @@ func UserURLsGet(svc service.Service) http.HandlerFunc {
 
 func UserURLsDelete(svc service.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		type request struct {
+			IDs []models.ShortenID
+		}
+		var req request
 
+		if err := json.NewDecoder(r.Body).Decode(&req.IDs); err != nil {
+			logger.Log.Info().Err(err).Msg("error while decoding request body")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := svc.DeleteURLs(ctx, req.IDs); err != nil {
+			logger.Log.Info().Err(err).Msg("error while deleting urls")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
 	}
 }

@@ -17,15 +17,27 @@ type Service interface {
 	GetStore() storage.Storage
 	GetFullURL(ctx context.Context, sID models.ShortenID) (*models.FullURL, error)
 	GetConfigs() *config.Config
+	DeleteURLs(ctx context.Context, IDs []models.ShortenID) error
+	markAsDeletedListener()
+	MarkAsDeletedCh() chan models.ShortenID
 }
 
 type service struct {
-	store storage.Storage
-	cfg   *config.Config
+	store                 storage.Storage
+	cfg                   *config.Config
+	markAsDeletedCh       chan models.ShortenID
+	markAsDeletedResultCh chan models.ShortenID
 }
 
 func NewService(s storage.Storage, cfg *config.Config) Service {
-	return &service{s, cfg}
+	svc := &service{
+		store:                 s,
+		cfg:                   cfg,
+		markAsDeletedCh:       make(chan models.ShortenID, 1),
+		markAsDeletedResultCh: make(chan models.ShortenID, 64),
+	}
+	go svc.markAsDeletedListener()
+	return svc
 }
 
 func (s service) CreateShortenURL(ctx context.Context, fURL models.FullURL) (*models.ShortURL, error) {
@@ -71,4 +83,26 @@ func (s service) GetFullURL(ctx context.Context, sID models.ShortenID) (*models.
 
 func (s service) GetConfigs() *config.Config {
 	return s.cfg
+}
+
+func (s service) DeleteURLs(ctx context.Context, IDs []models.ShortenID) error {
+	if err := s.store.MarkAsDeletedByID(ctx, IDs); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s service) markAsDeletedListener() {
+	logger.Log.Info().Msg("MarkAsDeletedListener active")
+	defer close(s.markAsDeletedResultCh)
+
+	for sID := range s.markAsDeletedCh {
+		s.markAsDeletedResultCh <- sID
+	}
+
+	logger.Log.Info().Msg("markAsDeletedResultCh chan closed")
+}
+
+func (s service) MarkAsDeletedCh() chan models.ShortenID {
+	return s.markAsDeletedCh
 }

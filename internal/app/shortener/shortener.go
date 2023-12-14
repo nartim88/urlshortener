@@ -98,6 +98,22 @@ func (a *Application) Run() {
 	}
 
 	<-idleConnsClosed
+
+	markAsDeletedCh := a.Service.MarkAsDeletedCh()
+	close(markAsDeletedCh)
+
+check:
+	for {
+		_, ok := <-markAsDeletedCh
+		switch {
+		case ok:
+			logger.Log.Info().Msg("chan are closing")
+			time.Sleep(1 * time.Second)
+		default:
+			break check
+		}
+	}
+
 	logger.Log.Info().Msg("server is closed")
 }
 

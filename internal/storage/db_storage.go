@@ -124,7 +124,7 @@ func (s DBStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID
 	var params string
 
 	for _, id := range IDs {
-		params = params + fmt.Sprintf("%s", id)
+		params = params + fmt.Sprintf("'%s'", id)
 	}
 
 	params = "(" + params + ")"

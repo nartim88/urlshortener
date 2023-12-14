@@ -93,14 +93,14 @@ func (s service) DeleteURLs(ctx context.Context, IDs []models.ShortenID) error {
 }
 
 func (s service) markAsDeletedListener() {
-	logger.Log.Info().Msg("MarkAsDeletedListener active")
+	logger.Log.Info().Msg("MarkAsDeletedListener is active")
 	defer close(s.markAsDeletedResultCh)
 
 	for sID := range s.markAsDeletedCh {
 		s.markAsDeletedResultCh <- sID
 	}
 
-	logger.Log.Info().Msg("markAsDeletedResultCh chan closed")
+	logger.Log.Info().Msg("MarkAsDeletedListener is closed")
 }
 
 func (s service) MarkAsDeletedCh() chan models.ShortenID {

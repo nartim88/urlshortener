@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/nartim88/urlshortener/internal/models"
@@ -15,3 +16,5 @@ type URLExistsError struct {
 func (u URLExistsError) Error() string {
 	return fmt.Sprintf("'%s' is already saved", u.OriginalURL)
 }
+
+var URLDeletedError = errors.New("url deleted")

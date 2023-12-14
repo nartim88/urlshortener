@@ -84,6 +84,10 @@ func GetURLHandle(svc service.Service) http.HandlerFunc {
 
 		fURL, err := svc.GetFullURL(ctx, sID)
 		if err != nil {
+			if errors.Is(err, storage.URLDeletedError) {
+				http.Error(w, err.Error(), http.StatusGone)
+				return
+			}
 			logger.Log.Info().Err(err).Send()
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

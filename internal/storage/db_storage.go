@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/utils"
+	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type DBStorage struct {
@@ -19,20 +20,34 @@ func NewDBStorage(conn *pgx.Conn) StorageWithService {
 }
 
 func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error) {
-	var fURL models.FullURL
+	type queryRes struct {
+		fURL      models.FullURL
+		isDeleted bool
+	}
+
+	var qRes queryRes
+
 	err := s.conn.QueryRow(ctx, `
-		SELECT full_url 
+		SELECT full_url, is_deleted
 		FROM shortener 
 		WHERE shorten_id=$1`,
 		sID,
-	).Scan(&fURL)
+	).Scan(&qRes.fURL, &qRes.isDeleted)
+
+	logger.Log.Debug().Msgf("qres: %#v", qRes)
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &fURL, nil
+
+	if qRes.isDeleted {
+		return nil, URLDeletedError
+	}
+
+	return &qRes.fURL, nil
 }
 
 func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {

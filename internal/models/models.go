@@ -32,6 +32,7 @@ type ShortAndFullURLs struct {
 }
 
 type UserIDCtxKey string
+type CorrelationIDCtxKey string
 
 type URLsModel struct {
 	ID          string    `json:"id,omitempty"`

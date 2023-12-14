@@ -33,7 +33,8 @@ func WithLogging(next http.Handler) http.Handler {
 		correlationID := xid.New().String()
 		lrw.Header().Add("X-Correlation-ID", correlationID)
 
-		ctx := context.WithValue(r.Context(), "correlation_id", correlationID)
+		ctxKey := models.CorrelationIDCtxKey("correlation_id")
+		ctx := context.WithValue(r.Context(), ctxKey, correlationID)
 		r = r.WithContext(ctx)
 		logger.Log.UpdateContext(func(c zerolog.Context) zerolog.Context {
 			return c.Str("correlation_id", correlationID)

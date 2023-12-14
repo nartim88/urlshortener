@@ -53,7 +53,7 @@ func IndexHandle(svc service.Service) http.HandlerFunc {
 		var sCode = http.StatusCreated
 		shortURL, err := svc.CreateShortenURL(ctx, fURL)
 		if err != nil {
-			var existsErr storage.URLExistsError
+			var existsErr storage.ErrURLExists
 			if errors.As(err, &existsErr) {
 				logger.Log.Info().Msgf("%v", existsErr)
 				sCode = http.StatusConflict
@@ -84,7 +84,7 @@ func GetURLHandle(svc service.Service) http.HandlerFunc {
 
 		fURL, err := svc.GetFullURL(ctx, sID)
 		if err != nil {
-			if errors.Is(err, storage.URLDeletedError) {
+			if errors.Is(err, storage.ErrURLDeleted) {
 				http.Error(w, err.Error(), http.StatusGone)
 				return
 			}
@@ -130,7 +130,7 @@ func GetShortURLHandle(svc service.Service) http.HandlerFunc {
 		var sCode = http.StatusCreated
 		shortURL, err := svc.CreateShortenURL(ctx, req.FullURL)
 		if err != nil {
-			var existsErr storage.URLExistsError
+			var existsErr storage.ErrURLExists
 			if errors.As(err, &existsErr) {
 				logger.Log.Info().Msgf("%v", err)
 				sCode = http.StatusConflict
@@ -217,7 +217,7 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 		for _, rData := range req.Data {
 			shortURL, err := svc.CreateShortenURL(ctx, rData.FullURL)
 			if err != nil {
-				var existsErr storage.URLExistsError
+				var existsErr storage.ErrURLExists
 				if errors.As(err, &existsErr) {
 					logger.Log.Info().Msgf("%v", existsErr)
 					sCode = http.StatusConflict

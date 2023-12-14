@@ -7,14 +7,14 @@ import (
 	"github.com/nartim88/urlshortener/internal/models"
 )
 
-// URLExistsError урл уже существует в базе
-type URLExistsError struct {
+// ErrURLExists урл уже существует в базе
+type ErrURLExists struct {
 	OriginalURL models.FullURL
 	SID         models.ShortenID
 }
 
-func (u URLExistsError) Error() string {
+func (u ErrURLExists) Error() string {
 	return fmt.Sprintf("'%s' is already saved", u.OriginalURL)
 }
 
-var URLDeletedError = errors.New("url deleted")
+var ErrURLDeleted = errors.New("url deleted")

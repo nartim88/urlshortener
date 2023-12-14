@@ -44,10 +44,12 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 	}
 
 	if qRes.isDeleted {
-		return nil, URLDeletedError
+		return nil, ErrURLDeleted
 	}
 
-	return &qRes.fURL, nil
+	fURL := qRes.fURL
+
+	return &fURL, nil
 }
 
 func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
@@ -73,7 +75,7 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
 	}
 	if newSID != resSID {
-		err = URLExistsError{
+		err = ErrURLExists{
 			fURL,
 			resSID,
 		}

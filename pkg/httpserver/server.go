@@ -37,8 +37,11 @@ func (s Server) Notify() <-chan error {
 }
 
 func (s Server) Shutdown() error {
-	shutdownCtx, _ := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+	defer cancel()
+
 	errCh := make(chan error)
+
 	go func() {
 		<-shutdownCtx.Done()
 		if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
@@ -46,11 +49,13 @@ func (s Server) Shutdown() error {
 			errCh <- err
 		}
 	}()
+
 	var err error
 	select {
 	case err = <-errCh:
 	default:
 		err = s.server.Shutdown(shutdownCtx)
 	}
+
 	return err
 }

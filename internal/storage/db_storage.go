@@ -102,7 +102,7 @@ func (s DBStorage) Bootstrap(ctx context.Context) (err error) {
 		    full_url VARCHAR(2048) NOT NULL CHECK (full_url <> ''),
 		    shorten_id VARCHAR(8) NOT NULL CHECK (shorten_id <> ''),
 		    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-		    is_deleted BOOLEAN
+		    is_deleted BOOLEAN DEFAULT false
 		);
 		CREATE INDEX IF NOT EXISTS shortener_short_url_idx ON shortener (shorten_id);
 		CREATE UNIQUE INDEX IF NOT EXISTS shortener_full_url_unique_idx ON shortener (full_url)

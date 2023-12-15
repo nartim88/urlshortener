@@ -150,14 +150,14 @@ func (s DBStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID
 		params = append(params, fmt.Sprintf("'%s'", id))
 	}
 
-	paramsS := strings.Join(params, ", ")
-	paramsS = "(" + paramsS + ")"
+	paramsStr := strings.Join(params, ", ")
+	paramsStr = "(" + paramsStr + ")"
 	query := `
 		UPDATE shortener SET is_deleted = true
-		WHERE shorten_id IN ` + paramsS
+		WHERE shorten_id IN ` + paramsStr
 	tag, err := s.conn.Exec(ctx, query)
 
-	logger.Log.Debug().Msgf("query params: %v", params)
+	logger.Log.Debug().Msgf("query params: %v", paramsStr)
 	logger.Log.Debug().Msgf("query response tag: %v", tag)
 
 	if err != nil {

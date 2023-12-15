@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/models/api/v1"
 	"github.com/nartim88/urlshortener/internal/models/api/v2"
@@ -223,7 +224,7 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 					sCode = http.StatusConflict
 				} else {
 					logger.Log.Info().Err(err).Send()
-					http.Error(w, err.Error(), http.StatusBadRequest)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 			}

@@ -11,12 +11,13 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/app/shortener"
 	"github.com/nartim88/urlshortener/internal/controller/api/middleware"
 	"github.com/nartim88/urlshortener/internal/controller/api/routers"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func initApp() shortener.Application {
@@ -216,6 +217,7 @@ func TestAPI(t *testing.T) {
 			resp := testJSONRequest(t, tc.method, srv.URL, tc.path, tc.body, app.Configs.SecretKey)
 			assert.Contains(t, tc.want.statusCodes, resp.StatusCode())
 			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
+			t.Logf("response text: %s", resp.Body())
 		})
 	}
 }

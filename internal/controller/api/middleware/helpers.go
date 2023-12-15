@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
@@ -149,7 +150,7 @@ func setTokenToResp(rw *http.ResponseWriter, key string) *http.Cookie {
 
 	nw := *rw
 	nw.Header().Set("Authorization", tokenString)
-	logger.Log.Info().Msgf("rw headers: %#v", nw.Header())
+	logger.Log.Debug().Msgf("rw headers: %#v", nw.Header())
 	rw = &nw
 
 	cookieName := "token"

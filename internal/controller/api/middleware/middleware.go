@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/rs/xid"
+	"github.com/rs/zerolog"
+
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/pkg/logger"
-	"github.com/rs/xid"
-	"github.com/rs/zerolog"
 )
 
 type Claims struct {
@@ -95,6 +96,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 
 			logger.Log.Info().Msgf("path: %s", r.URL.Path)
 			switch r.URL.Path {
+
 			// согласно тестам на это точке кука не выдается
 			case "/api/user/urls":
 				cookie, err := checkCookieWithToken(*r)
@@ -113,6 +115,7 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 				k := models.UserIDCtxKey("userID")
 				ctx := context.WithValue(r.Context(), k, UserID)
 				r = r.WithContext(ctx)
+
 			default:
 				cookie, err := checkCookieWithToken(*r)
 				if err != nil {
@@ -132,8 +135,6 @@ func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 				//if strings.Contains(tokenString, "Bearer") {
 				//	tokenString = strings.Split(tokenString, "Bearer ")[1]
 				//}
-
-				logger.Log.Info().Str("tokenString", tokenString).Send()
 
 				UserID, err = getUserID(tokenString, cfg.SecretKey, claims)
 				if err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/utils"
 	"github.com/nartim88/urlshortener/pkg/logger"
@@ -47,9 +48,7 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 		return nil, ErrURLDeleted
 	}
 
-	fURL := qRes.fURL
-
-	return &fURL, nil
+	return &qRes.fURL, nil
 }
 
 func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error) {
@@ -71,9 +70,11 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 		`,
 		userID, fURL, newSID,
 	).Scan(&resSID)
+
 	if err != nil {
 		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
 	}
+
 	if newSID != resSID {
 		err = ErrURLExists{
 			fURL,
@@ -81,6 +82,7 @@ func (s DBStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shorte
 		}
 		return nil, err
 	}
+
 	return &newSID, nil
 }
 

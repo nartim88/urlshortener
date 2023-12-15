@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"errors"
 
 	"github.com/nartim88/urlshortener/internal/models"
 )
@@ -32,9 +31,14 @@ func (s *MemStorage) Set(ctx context.Context, fURL models.FullURL) (*models.Shor
 	shortURL := models.ShortenID(randChars)
 
 	if s.isExist(shortURL) {
-		return nil, errors.New("URL already exists")
+		return nil, ErrURLExists{
+			OriginalURL: fURL,
+			SID:         shortURL,
+		}
 	}
+
 	s.Memory[shortURL] = fURL
+
 	return &shortURL, nil
 }
 

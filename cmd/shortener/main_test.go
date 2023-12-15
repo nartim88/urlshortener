@@ -88,6 +88,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	return resp, string(respBody)
 }
 
+// testJSONRequest отправляет json request с кукой с токеном
 func testJSONRequest(t *testing.T, method, url, path string, body any, key string) *resty.Response {
 	req := resty.New().R()
 	req.Method = method
@@ -215,8 +216,10 @@ func TestAPI(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := testJSONRequest(t, tc.method, srv.URL, tc.path, tc.body, app.Configs.SecretKey)
+
 			assert.Contains(t, tc.want.statusCodes, resp.StatusCode())
 			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
+
 			t.Logf("response text: %s", resp.Body())
 		})
 	}

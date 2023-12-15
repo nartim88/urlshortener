@@ -44,7 +44,7 @@ func (s service) CreateShortenURL(ctx context.Context, fURL models.FullURL) (*mo
 	var shortURL models.ShortURL
 	sID, err := s.store.Set(ctx, fURL)
 	if err != nil {
-		existsError := storage.ErrURLExists{}
+		var existsError storage.ErrURLExists
 		if errors.As(err, &existsError) {
 			shortURL = models.ShortURL(s.cfg.BaseURL + "/" + string(existsError.SID))
 			return &shortURL, existsError

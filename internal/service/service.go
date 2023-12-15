@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/models"
@@ -37,6 +38,8 @@ func NewService(s storage.Storage, cfg *config.Config) Service {
 		markAsDeletedResultCh: make(chan models.ShortenID, 64),
 	}
 	go svc.markAsDeletedListener()
+	go svc.markAsDeleteWorker()
+
 	return svc
 }
 
@@ -86,8 +89,8 @@ func (s service) GetConfigs() *config.Config {
 }
 
 func (s service) DeleteURLs(ctx context.Context, IDs []models.ShortenID) error {
-	if err := s.store.MarkAsDeletedByID(ctx, IDs); err != nil {
-		return err
+	for _, sID := range IDs {
+		s.markAsDeletedCh <- sID
 	}
 	return nil
 }
@@ -105,4 +108,36 @@ func (s service) markAsDeletedListener() {
 
 func (s service) MarkAsDeletedCh() chan models.ShortenID {
 	return s.markAsDeletedCh
+}
+
+func (s service) markAsDeleteWorker() {
+	logger.Log.Info().Msg("MarkAsDeletedWorker is active")
+
+	var shortenIDs []models.ShortenID
+	ticker := time.NewTicker(10 * time.Second)
+
+	for {
+		select {
+
+		case sID := <-s.markAsDeletedResultCh:
+			shortenIDs = append(shortenIDs, sID)
+
+		case <-ticker.C:
+			if len(shortenIDs) == 0 {
+				continue
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+
+			logger.Log.Info().Msgf("got IDs to mark as deleted: %v", shortenIDs)
+			err := s.store.MarkAsDeletedByID(ctx, shortenIDs)
+			if err != nil {
+				logger.Log.Error().Err(err).Send()
+				continue
+			}
+
+			shortenIDs = nil
+			cancel()
+		}
+	}
 }

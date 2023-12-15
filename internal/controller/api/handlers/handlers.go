@@ -314,7 +314,7 @@ func UserURLsDelete(svc service.Service) http.HandlerFunc {
 
 		if err := svc.DeleteURLs(ctx, req.IDs); err != nil {
 			logger.Log.Info().Err(err).Msg("error while deleting urls")
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

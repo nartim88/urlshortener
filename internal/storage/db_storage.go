@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 
@@ -20,6 +21,9 @@ func NewDBStorage(conn *pgx.Conn) StorageWithService {
 	return &DBStorage{conn}
 }
 
+// Get возвращает оригинальный урл по строковому идентификатору.
+// Возвращает pgx.ErrNoRows, если в базе не найдены записи, или
+// ErrURLDeleted, если записи помечены как удаленные.
 func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error) {
 	type queryRes struct {
 		fURL      models.FullURL
@@ -140,18 +144,21 @@ func (s DBStorage) ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL
 }
 
 func (s DBStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error {
-	var params string
+	var params []string
 
 	for _, id := range IDs {
-		params = params + fmt.Sprintf("'%s'", id)
+		params = append(params, fmt.Sprintf("'%s'", id))
 	}
 
-	params = "(" + params + ")"
+	paramsS := strings.Join(params, ", ")
+	paramsS = "(" + paramsS + ")"
 	query := `
-		UPDATE shortener
-		SET is_deleted = true
-		WHERE shorten_id IN ` + params
-	_, err := s.conn.Exec(ctx, query)
+		UPDATE shortener SET is_deleted = true
+		WHERE shorten_id IN ` + paramsS
+	tag, err := s.conn.Exec(ctx, query)
+
+	logger.Log.Debug().Msgf("query params: %v", params)
+	logger.Log.Debug().Msgf("query response tag: %v", tag)
 
 	if err != nil {
 		return err

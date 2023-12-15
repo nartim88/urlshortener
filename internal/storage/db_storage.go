@@ -45,7 +45,7 @@ func (s DBStorage) Get(ctx context.Context, sID models.ShortenID) (*models.FullU
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("error while getting full_url from db: %w", err)
 	}
 
 	if qRes.isDeleted {

@@ -90,7 +90,7 @@ func GetURLHandle(svc service.Service) http.HandlerFunc {
 				return
 			}
 			logger.Log.Info().Err(err).Send()
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

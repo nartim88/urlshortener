@@ -142,6 +142,14 @@ func TestMainRouter(t *testing.T) {
 				statusCodes: []int{404},
 			},
 		},
+		{
+			name:   "/{id}_GET",
+			url:    "/SnDb3L2k",
+			method: http.MethodGet,
+			want: want{
+				statusCodes: []int{307, 410},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -209,6 +217,15 @@ func TestAPI(t *testing.T) {
 			method: http.MethodGet,
 			want: want{
 				statusCodes: []int{200, 204},
+			},
+		},
+		{
+			name:   "/api/user/urls_DELETE",
+			path:   "/api/user/urls",
+			method: http.MethodDelete,
+			body:   `["xLbDjDFR", "SnDb3L2k"]`,
+			want: want{
+				statusCodes: []int{202},
 			},
 		},
 	}

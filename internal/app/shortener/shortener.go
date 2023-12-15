@@ -99,12 +99,12 @@ func (a *Application) Run() {
 
 	<-idleConnsClosed
 
-	markAsDeletedCh := a.Service.MarkAsDeletedCh()
-	close(markAsDeletedCh)
+	close(a.Service.MarkAsDeletedCh())
+	close(a.Service.MarkAsDeletedResultCh())
 
 check:
 	for {
-		_, ok := <-markAsDeletedCh
+		_, ok := <-a.Service.MarkAsDeletedCh()
 		switch {
 		case ok:
 			logger.Log.Info().Msg("chan are closing")

@@ -21,6 +21,7 @@ type Service interface {
 	DeleteURLs(ctx context.Context, IDs []models.ShortenID) error
 	markAsDeletedListener()
 	MarkAsDeletedCh() chan models.ShortenID
+	MarkAsDeletedResultCh() chan models.ShortenID
 }
 
 type service struct {
@@ -140,4 +141,8 @@ func (s service) markAsDeleteWorker() {
 			cancel()
 		}
 	}
+}
+
+func (s service) MarkAsDeletedResultCh() chan models.ShortenID {
+	return s.markAsDeletedResultCh
 }

@@ -307,3 +307,29 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestLotsOfRequests(t *testing.T) {
+	app := initApp()
+	ts := httptest.NewServer(routers.MainRouter(app.Service))
+	defer ts.Close()
+
+	cookie, err := getCookieWithToken(app.Configs.SecretKey)
+	require.NoError(t, err)
+
+	t.Run("/api/user/urls_DELETE", func(t *testing.T) {
+		rNum := 150
+
+		req := resty.New().R()
+		req.Method = http.MethodDelete
+		req.URL = ts.URL + "/api/user/urls/"
+		req.Body = `["FPUQqsiu", "rf1JBFz8", "3xjod8dU", "TQX4kOUq", "6MtUEQll"]`
+
+		req.SetCookie(cookie)
+
+		for i := 0; i < rNum; i++ {
+			resp, err := req.Send()
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode())
+		}
+	})
+}

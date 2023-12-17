@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nartim88/urlshortener/config"
 	"github.com/nartim88/urlshortener/internal/controller/api/routers"
 	"github.com/nartim88/urlshortener/internal/service"
@@ -124,12 +124,17 @@ func (a *Application) initStorage() (storage.Storage, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		conn, err := pgx.Connect(ctx, a.Configs.DatabaseDSN)
+		//conn, err := pgx.Connect(ctx, a.Configs.DatabaseDSN)
+		//if err != nil {
+		//	return nil, fmt.Errorf("error while connecting to db: %w", err)
+		//}
+
+		pool, err := pgxpool.New(ctx, a.Configs.DatabaseDSN)
 		if err != nil {
 			return nil, fmt.Errorf("error while connecting to db: %w", err)
 		}
 
-		s := storage.NewDBStorage(conn)
+		s := storage.NewDBStorage(pool)
 
 		if err = s.Bootstrap(ctx); err != nil {
 			return nil, fmt.Errorf("error while creating tables in db: %w", err)

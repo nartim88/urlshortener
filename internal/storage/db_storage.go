@@ -7,17 +7,17 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nartim88/urlshortener/internal/models"
 	"github.com/nartim88/urlshortener/internal/utils"
 	"github.com/nartim88/urlshortener/pkg/logger"
 )
 
 type DBStorage struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewDBStorage(conn *pgx.Conn) StorageWithService {
+func NewDBStorage(conn *pgxpool.Pool) StorageWithService {
 	return &DBStorage{conn}
 }
 
@@ -94,9 +94,7 @@ func (s DBStorage) Close(ctx context.Context) error {
 	if s.conn == nil {
 		return errors.New("db connection doesn't exists or already closed")
 	}
-	if err := s.conn.Close(ctx); err != nil {
-		return err
-	}
+	s.conn.Close()
 	return nil
 }
 

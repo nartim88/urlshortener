@@ -159,11 +159,12 @@ func TestMainRouter(t *testing.T) {
 		// создаем новый короткий урл
 		reqText := "https://ya.ru"
 		buf := bytes.NewBufferString(reqText)
-		_, b := testRequest(t, ts, http.MethodPost, "/", buf, app.Configs.SecretKey)
+		resp1, b := testRequest(t, ts, http.MethodPost, "/", buf, app.Configs.SecretKey)
+		resp1.Body.Close()
 
 		// проверяем вторым запросом, что он создан и приходит правильный ответ
-		resp := testJSONRequest(t, http.MethodGet, ts.URL, b, nil, app.Configs.SecretKey)
-		assert.Equal(t, http.StatusOK, resp.StatusCode())
+		resp2 := testJSONRequest(t, http.MethodGet, ts.URL, b, nil, app.Configs.SecretKey)
+		assert.Equal(t, http.StatusOK, resp2.StatusCode())
 	})
 }
 

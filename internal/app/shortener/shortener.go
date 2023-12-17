@@ -124,11 +124,6 @@ func (a *Application) initStorage() (storage.Storage, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		//conn, err := pgx.Connect(ctx, a.Configs.DatabaseDSN)
-		//if err != nil {
-		//	return nil, fmt.Errorf("error while connecting to db: %w", err)
-		//}
-
 		pool, err := pgxpool.New(ctx, a.Configs.DatabaseDSN)
 		if err != nil {
 			return nil, fmt.Errorf("error while connecting to db: %w", err)

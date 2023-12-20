@@ -210,27 +210,47 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 		logger.Log.Info().Msgf("got batch: %+v", req)
 
 		var respPayload []v2.ResponsePayload
-		var sCode = http.StatusCreated
+		//var sCode = http.StatusCreated
 
 		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
 
+		//for _, rData := range req.Data {
+		//	shortURL, err := svc.CreateShortenURL(ctx, rData.FullURL)
+		//	if err != nil {
+		//		var existsErr storage.ErrURLExists
+		//		if errors.As(err, &existsErr) {
+		//			logger.Log.Info().Msgf("%v", existsErr)
+		//			sCode = http.StatusConflict
+		//		} else {
+		//			logger.Log.Info().Err(err).Send()
+		//			http.Error(w, err.Error(), http.StatusInternalServerError)
+		//			return
+		//		}
+		//	}
+		//	respPayload = append(respPayload, v2.ResponsePayload{
+		//		CorrelationID: rData.CorrelationID,
+		//		ShortURL:      string(*shortURL),
+		//	})
+		//}
+
+		fURLsWithCorrID := make(map[models.FullURL]models.CorrelationID)
+
 		for _, rData := range req.Data {
-			shortURL, err := svc.CreateShortenURL(ctx, rData.FullURL)
-			if err != nil {
-				var existsErr storage.ErrURLExists
-				if errors.As(err, &existsErr) {
-					logger.Log.Info().Msgf("%v", existsErr)
-					sCode = http.StatusConflict
-				} else {
-					logger.Log.Info().Err(err).Send()
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}
+			fURLsWithCorrID[rData.FullURL] = rData.CorrelationID
+		}
+
+		shortenURLsWithCorrIDs, err := svc.SaveBatchOfRULs(ctx, fURLsWithCorrID)
+		if err != nil {
+			logger.Log.Error().Err(err).Msg("save batch of urls")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for shortenURL, corrID := range shortenURLsWithCorrIDs {
 			respPayload = append(respPayload, v2.ResponsePayload{
-				CorrelationID: rData.CorrelationID,
-				ShortURL:      string(*shortURL),
+				CorrelationID: corrID,
+				ShortURL:      string(shortenURL),
 			})
 		}
 
@@ -244,7 +264,7 @@ func GetBatchShortURLsHandle(svc service.Service) http.HandlerFunc {
 		}
 
 		w.Header().Set(contentType, applicationJSON)
-		w.WriteHeader(sCode)
+		w.WriteHeader(http.StatusCreated)
 		_, err = w.Write(respDecoded)
 		if err != nil {
 			logger.Log.Info().Err(err).Msg("error while sending response")

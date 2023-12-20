@@ -55,3 +55,7 @@ func (s *MemStorage) isExist(sID models.ShortenID) bool {
 func (s *MemStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error {
 	return nil
 }
+
+func (s *MemStorage) SetBatch(ctx context.Context, fURLs []models.FullURL) (map[models.FullURL]models.ShortenID, error) {
+	return nil, nil
+}

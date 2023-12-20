@@ -25,12 +25,14 @@ type SIDAndFullURL struct {
 type Storage interface {
 	// Get возвращает полный урл по строковому идентификатору
 	Get(ctx context.Context, sID models.ShortenID) (*models.FullURL, error)
-	// Set сохраняет в базу полный УРЛ и соответствующий ему строковой идентификатор
+	// Set сохраняет в базу полный УРЛ и возвращает соответствующий ему строковой идентификатор
 	Set(ctx context.Context, fURL models.FullURL) (*models.ShortenID, error)
 	// ListURLs возвращает все записи переданного пользователя
 	ListURLs(ctx context.Context, u models.User) ([]SIDAndFullURL, error)
 	// MarkAsDeletedByID помечает урлы как удаленные по строковым идентификаторам
 	MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID) error
+	// SetBatch сохраняет в базу батч урлов по аналогии с Set
+	SetBatch(ctx context.Context, fURLs []models.FullURL) (map[models.FullURL]models.ShortenID, error)
 }
 
 // StorageWithService расширенный интерфейс для работы с данными, подходящий для работы с

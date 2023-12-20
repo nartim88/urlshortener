@@ -21,6 +21,8 @@ func NewDBStorage(conn *pgxpool.Pool) StorageWithService {
 	return &DBStorage{conn}
 }
 
+var _ Storage = DBStorage{}
+
 // Get возвращает оригинальный урл по строковому идентификатору.
 // Возвращает pgx.ErrNoRows, если в базе не найдены записи, или
 // ErrURLDeleted, если записи помечены как удаленные.
@@ -163,4 +165,39 @@ func (s DBStorage) MarkAsDeletedByID(ctx context.Context, IDs []models.ShortenID
 	}
 
 	return nil
+}
+
+func (s DBStorage) SetBatch(ctx context.Context, fURLs []models.FullURL) (map[models.FullURL]models.ShortenID, error) {
+	userID, err := utils.GetUserIDFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		params      []string
+		paramsToStr string
+	)
+
+	shortenIDs := make(map[models.FullURL]models.ShortenID)
+
+	for _, fullURL := range fURLs {
+		randChars := GenerateRandChars(shortURLLen)
+		str := "(" + userID + ", " + string(fullURL) + ", " + string(randChars) + ")"
+		params = append(params, str)
+		paramsToStr = strings.Join(params, ", ")
+	}
+
+	query := fmt.Sprintf(`
+		INSERT INTO shortener (user_id, full_url, shorten_id)
+		VALUES %s
+	   	ON CONFLICT (full_url) DO UPDATE
+			SET full_url = EXCLUDED.full_url
+		RETURNING full_url, shorten_id;
+	`, paramsToStr)
+
+	if err = s.conn.QueryRow(ctx, query).Scan(&shortenIDs); err != nil {
+		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
+	}
+
+	return shortenIDs, nil
 }

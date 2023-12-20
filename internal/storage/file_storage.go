@@ -143,3 +143,7 @@ func (s *FileStorage) createFile() error {
 	}
 	return nil
 }
+
+func (s *FileStorage) SetBatch(ctx context.Context, fURLs []models.FullURL) (map[models.FullURL]models.ShortenID, error) {
+	return nil, nil
+}

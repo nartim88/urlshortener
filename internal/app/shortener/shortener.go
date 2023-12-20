@@ -87,8 +87,9 @@ func (a *Application) Run() {
 	}
 
 	store := a.Service.GetStore()
-	s, ok := store.(storage.StorageWithService)
-	if ok {
+
+	switch s := store.(type) {
+	case storage.StorageWithService:
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := s.Close(ctx); err != nil {

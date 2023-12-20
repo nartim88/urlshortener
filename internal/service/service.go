@@ -22,6 +22,13 @@ type Service interface {
 	markAsDeletedListener()
 	MarkAsDeletedCh() chan models.ShortenID
 	MarkAsDeletedResultCh() chan models.ShortenID
+
+	// SaveBatchOfRULs сохраняет батч урлов и возвращает сокращенные урлы с
+	// соответствующими им correlation_id.
+	SaveBatchOfRULs(
+		ctx context.Context,
+		fURLsWithCorrID map[models.FullURL]models.CorrelationID,
+	) (map[models.ShortURL]models.CorrelationID, error)
 }
 
 type service struct {
@@ -145,4 +152,35 @@ func (s service) markAsDeleteWorker() {
 
 func (s service) MarkAsDeletedResultCh() chan models.ShortenID {
 	return s.markAsDeletedResultCh
+}
+
+func (s service) SaveBatchOfRULs(
+	ctx context.Context,
+	fURLsWithCorrID map[models.FullURL]models.CorrelationID,
+) (map[models.ShortURL]models.CorrelationID, error) {
+
+	var fullURLs []models.FullURL
+
+	for fullURL := range fURLsWithCorrID {
+		fullURLs = append(fullURLs, fullURL)
+	}
+
+	fullURLsAndShortenIDs, err := s.store.SetBatch(ctx, fullURLs)
+	if err != nil {
+		return nil, fmt.Errorf("SetBatch error: %w", err)
+	}
+
+	result := make(map[models.ShortURL]models.CorrelationID)
+
+	for fullURL, shortenID := range fullURLsAndShortenIDs {
+		shortURL := s.makeShortenURL(shortenID)
+		corrID, ok := fURLsWithCorrID[fullURL]
+		if ok {
+			result[shortURL] = corrID
+		} else {
+			logger.Log.Error().Msgf("error with %s", fullURL)
+		}
+	}
+
+	return result, nil
 }

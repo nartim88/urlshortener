@@ -176,13 +176,15 @@ func (s DBStorage) SetBatch(ctx context.Context, fURLs []models.FullURL) (map[mo
 	var (
 		params      []string
 		paramsToStr string
+		fURL        models.FullURL
+		sID         models.ShortenID
 	)
 
-	shortenIDs := make(map[models.FullURL]models.ShortenID)
+	fullURLsWithShortenIDs := make(map[models.FullURL]models.ShortenID)
 
 	for _, fullURL := range fURLs {
 		randChars := GenerateRandChars(shortURLLen)
-		str := "(" + userID + ", " + string(fullURL) + ", " + string(randChars) + ")"
+		str := fmt.Sprintf("('%s', '%s', '%s')", userID, fullURL, randChars)
 		params = append(params, str)
 		paramsToStr = strings.Join(params, ", ")
 	}
@@ -195,9 +197,17 @@ func (s DBStorage) SetBatch(ctx context.Context, fURLs []models.FullURL) (map[mo
 		RETURNING full_url, shorten_id;
 	`, paramsToStr)
 
-	if err = s.conn.QueryRow(ctx, query).Scan(&shortenIDs); err != nil {
-		return nil, fmt.Errorf("error while trying to save data in the db: %w", err)
+	rows, err := s.conn.Query(ctx, query)
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&fURL, &sID)
+		fullURLsWithShortenIDs[fURL] = sID
 	}
 
-	return shortenIDs, nil
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return fullURLsWithShortenIDs, nil
 }

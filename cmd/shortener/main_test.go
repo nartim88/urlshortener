@@ -6,20 +6,74 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
-	"github.com/nartim88/urlshortener/internal/app/shortener"
-	"github.com/nartim88/urlshortener/internal/pkg/routers"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nartim88/urlshortener/config"
+	"github.com/nartim88/urlshortener/internal/app/shortener"
+	"github.com/nartim88/urlshortener/internal/controller/api/middleware"
+	"github.com/nartim88/urlshortener/internal/controller/api/routers"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+func initApp() shortener.Application {
+	cfg := &config.Config{
+		SecretKey: "secret_key",
+	}
+	app := shortener.NewApp()
+	app.Init(cfg) // init variables for test
+	return *app
+}
+
+// newCookie возвращает новую куку с предустановленными параметрами
+func newCookie(name string, value string) *http.Cookie {
+	return &http.Cookie{
+		Name:  name,
+		Value: value,
+	}
+}
+
+// buildJWTString создаёт JWT токен и возвращает его в виде строки
+func buildJWTString(claims jwt.Claims, key string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenString, err := token.SignedString([]byte(key))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+// getCookieWithToken создает куку с токеном
+func getCookieWithToken(key string) (*http.Cookie, error) {
+	newUUID, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+	claim := middleware.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{},
+		UserID:           newUUID.String(),
+	}
+	tokenString, err := buildJWTString(claim, key)
+	if err != nil {
+		return nil, err
+	}
+	cookieName := "token"
+	cookie := newCookie(cookieName, tokenString)
+	return cookie, nil
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader, key string) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
+
+	cookie, err := getCookieWithToken(key)
+	require.NoError(t, err)
+
+	req.AddCookie(cookie)
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
@@ -34,15 +88,33 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	return resp, string(respBody)
 }
 
-func TestMainRouter(t *testing.T) {
-	shortener.App.Init() // init variables for test
+// testJSONRequest отправляет json request с кукой с токеном
+func testJSONRequest(t *testing.T, method, url, path string, body any, key string) *resty.Response {
+	req := resty.New().R()
+	req.Method = method
+	req.URL = url + path
+	req.Body = body
+	req.Header.Set("Content-Type", "application/json")
 
-	ts := httptest.NewServer(routers.MainRouter())
+	cookie, err := getCookieWithToken(key)
+	require.NoError(t, err)
+
+	req.SetCookie(cookie)
+
+	resp, err := req.Send()
+	require.NoError(t, err)
+
+	return resp
+}
+
+func TestMainRouter(t *testing.T) {
+	app := initApp()
+	ts := httptest.NewServer(routers.MainRouter(app.Service))
 	defer ts.Close()
 
 	type want struct {
 		contentType string
-		statusCodes []string
+		statusCodes []int
 	}
 
 	var testCases = []struct {
@@ -59,7 +131,7 @@ func TestMainRouter(t *testing.T) {
 			body:   "https://ya.ru",
 			want: want{
 				contentType: "text/plain",
-				statusCodes: []string{"201", "409"},
+				statusCodes: []int{201, 409},
 			},
 		},
 		{
@@ -67,7 +139,7 @@ func TestMainRouter(t *testing.T) {
 			url:    "/HMOUQTFX",
 			method: http.MethodGet,
 			want: want{
-				statusCodes: []string{"404"},
+				statusCodes: []int{404},
 			},
 		},
 	}
@@ -75,22 +147,35 @@ func TestMainRouter(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			buf := bytes.NewBufferString(tc.body)
-			resp, _ := testRequest(t, ts, tc.method, tc.url, buf)
+			resp, _ := testRequest(t, ts, tc.method, tc.url, buf, app.Configs.SecretKey)
 			defer resp.Body.Close()
 
-			assert.Contains(t, tc.want.statusCodes, strconv.Itoa(resp.StatusCode))
+			assert.Contains(t, tc.want.statusCodes, resp.StatusCode)
 			assert.Equal(t, tc.want.contentType, resp.Header.Get("Content-Type"))
 		})
 	}
+
+	t.Run("/{id}_GET_temp_redirect", func(t *testing.T) {
+		// создаем новый короткий урл
+		reqText := "https://ya.ru"
+		buf := bytes.NewBufferString(reqText)
+		resp1, b := testRequest(t, ts, http.MethodPost, "/", buf, app.Configs.SecretKey)
+		resp1.Body.Close()
+
+		// проверяем вторым запросом, что он создан и приходит правильный ответ
+		resp2 := testJSONRequest(t, http.MethodGet, ts.URL, b, nil, app.Configs.SecretKey)
+		assert.Equal(t, http.StatusOK, resp2.StatusCode())
+	})
 }
 
 func TestAPI(t *testing.T) {
-	srv := httptest.NewServer(routers.MainRouter())
+	app := initApp()
+	srv := httptest.NewServer(routers.MainRouter(app.Service))
 	defer srv.Close()
 
 	type want struct {
 		contentType string
-		statusCodes []string
+		statusCodes []int
 	}
 
 	var testCases = []struct {
@@ -107,7 +192,7 @@ func TestAPI(t *testing.T) {
 			body:   `{"url": "https://ya.ru"}`,
 			want: want{
 				contentType: "application/json",
-				statusCodes: []string{"201", "409"},
+				statusCodes: []int{201, 409},
 			},
 		},
 		{
@@ -127,31 +212,43 @@ func TestAPI(t *testing.T) {
 				]`,
 			want: want{
 				contentType: "application/json",
-				statusCodes: []string{"201", "409"},
+				statusCodes: []int{201, 409},
+			},
+		},
+		{
+			name:   "/api/user/urls_GET",
+			path:   "/api/user/urls",
+			method: http.MethodGet,
+			want: want{
+				statusCodes: []int{200, 204},
+			},
+		},
+		{
+			name:   "/api/user/urls_DELETE",
+			path:   "/api/user/urls",
+			method: http.MethodDelete,
+			body:   `["xLbDjDFR", "SnDb3L2k"]`,
+			want: want{
+				statusCodes: []int{202},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := resty.New().R()
+			resp := testJSONRequest(t, tc.method, srv.URL, tc.path, tc.body, app.Configs.SecretKey)
 
-			req.Method = tc.method
-			req.URL = srv.URL + tc.path
-			req.Body = tc.body
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := req.Send()
-
-			assert.NoError(t, err)
-			assert.Contains(t, tc.want.statusCodes, strconv.Itoa(resp.StatusCode()))
+			assert.Contains(t, tc.want.statusCodes, resp.StatusCode())
 			assert.Equal(t, tc.want.contentType, resp.Header().Get("Content-Type"))
+
+			t.Logf("response text: %s", resp.Body())
 		})
 	}
 }
 
 func TestGzipCompression(t *testing.T) {
-	srv := httptest.NewServer(routers.MainRouter())
+	app := initApp()
+	srv := httptest.NewServer(routers.MainRouter(app.Service))
 	defer srv.Close()
 
 	requestBody := `{"url": "https://ya.ru"}`
@@ -163,16 +260,21 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 		err = zb.Close()
 		require.NoError(t, err)
-
 		target := srv.URL + "/api/shorten"
+
 		req := httptest.NewRequest(http.MethodPost, target, buf)
 		req.RequestURI = ""
 		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("Content-Type", "application/json")
 
+		cookie, err := getCookieWithToken(app.Configs.SecretKey)
+		require.NoError(t, err)
+
+		req.AddCookie(cookie)
+
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		require.Contains(t, []string{"201", "409"}, strconv.Itoa(resp.StatusCode))
+		require.Contains(t, []int{201, 409}, resp.StatusCode)
 
 		defer resp.Body.Close()
 
@@ -189,10 +291,14 @@ func TestGzipCompression(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		req.SetDoNotParseResponse(true)
 
-		resp, err := req.Send()
-
+		cookie, err := getCookieWithToken(app.Configs.SecretKey)
 		require.NoError(t, err)
-		require.Contains(t, []string{"201", "409"}, strconv.Itoa(resp.StatusCode()))
+
+		req.SetCookie(cookie)
+
+		resp, err := req.Send()
+		require.NoError(t, err)
+		require.Contains(t, []int{201, 409}, resp.StatusCode())
 
 		zr, err := gzip.NewReader(resp.RawBody())
 		defer resp.RawBody().Close()
@@ -200,5 +306,31 @@ func TestGzipCompression(t *testing.T) {
 
 		_, err = io.ReadAll(zr)
 		require.NoError(t, err)
+	})
+}
+
+func TestLotsOfRequests(t *testing.T) {
+	app := initApp()
+	ts := httptest.NewServer(routers.MainRouter(app.Service))
+	defer ts.Close()
+
+	cookie, err := getCookieWithToken(app.Configs.SecretKey)
+	require.NoError(t, err)
+
+	t.Run("/api/user/urls_DELETE", func(t *testing.T) {
+		rNum := 150
+
+		req := resty.New().R()
+		req.Method = http.MethodDelete
+		req.URL = ts.URL + "/api/user/urls/"
+		req.Body = `["FPUQqsiu", "rf1JBFz8", "3xjod8dU", "TQX4kOUq", "6MtUEQll"]`
+
+		req.SetCookie(cookie)
+
+		for i := 0; i < rNum; i++ {
+			resp, err := req.Send()
+			assert.NoError(t, err)
+			assert.Equal(t, http.StatusAccepted, resp.StatusCode())
+		}
 	})
 }
